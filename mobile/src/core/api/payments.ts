@@ -21,6 +21,12 @@ export const createPaymentCheckout = (token: string, bookingId: string) =>
     body: JSON.stringify({ bookingId }),
   });
 
+export const reconcilePayment = (token: string, bookingId: string) =>
+  authorized<{ bookingId: string; approved: boolean }>('/payments/reconcile', token, {
+    method: 'POST',
+    body: JSON.stringify({ bookingId }),
+  });
+
 export const getRentalContract = (token: string, bookingId: string) =>
   authorized<RentalContract>(`/contracts/${bookingId}`, token);
 

@@ -23,6 +23,7 @@ import { DeleteAccountScreen } from '../../features/profile/DeleteAccountScreen'
 import { FavoritesScreen } from '../../features/favorites/FavoritesScreen';
 import { NotificationsScreen } from '../../features/notification/NotificationsScreen';
 import { OwnerDashboardScreen } from '../../features/owner/OwnerDashboardScreen';
+import { OwnerRentalScreen } from '../../features/owner/OwnerRentalScreen';
 import { ReviewsScreen } from '../../features/review/ReviewsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -63,6 +64,7 @@ export function RootNavigator() {
       <Stack.Screen name="Favorites" component={FavoritesScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="OwnerDashboard" component={OwnerDashboardScreen} />
+      <Stack.Screen name="OwnerRental" component={OwnerRentalScreen} />
       <Stack.Screen name="Reviews" component={ReviewsScreen} />
     </Stack.Navigator>
   );

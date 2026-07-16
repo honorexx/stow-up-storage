@@ -21,6 +21,7 @@ export type RootStackParamList = {
   Favorites: undefined;
   Notifications: undefined;
   OwnerDashboard: undefined;
+  OwnerRental: { bookingId: string };
   Reviews: undefined;
 };
 

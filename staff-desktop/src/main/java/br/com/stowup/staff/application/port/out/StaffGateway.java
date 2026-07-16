@@ -9,6 +9,10 @@ public interface StaffGateway {
 
   AdminDashboard dashboard(StaffSession session);
 
+  List<StaffPayment> payments(StaffSession session);
+
+  byte[] paymentReceipt(StaffSession session, String id);
+
   List<AppUser> appUsers(StaffSession session);
 
   AppUser updateAppUser(

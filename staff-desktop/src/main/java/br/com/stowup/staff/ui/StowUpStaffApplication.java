@@ -158,7 +158,7 @@ public final class StowUpStaffApplication extends Application {
           .add(
               new Tab(
                   "Pagamentos",
-                  emptyState(
+                  paymentsView(
                       "Operação financeira",
                       "Acompanhe pagamentos e repasses do Mercado Pago sem visualizar dados sensíveis de cartão.")));
     }
@@ -1280,9 +1280,9 @@ public final class StowUpStaffApplication extends Application {
               selectedTitle.setText("#" + space.id() + " · " + space.title());
               meta.setText(space.ownerName() + " · " + space.ownerEmail());
               status.setText(
-                  space.lifecycleStatus()
-                      + " · moderação "
-                      + space.moderationStatus()
+                  space.lifecycleLabel()
+                      + " · moderação: "
+                      + space.moderationLabel()
                       + (space.moderationReason() == null ? "" : " · " + space.moderationReason()));
               title.setText(space.title());
               owner.setText(space.ownerName() + " · " + space.ownerEmail());
@@ -1791,6 +1791,147 @@ public final class StowUpStaffApplication extends Application {
     public String toString() {
       return label;
     }
+  }
+
+  private Node paymentsView(String ignoredTitle, String ignoredMessage) {
+    ListView<StaffPayment> list = new ListView<>();
+    list.setPrefWidth(430);
+    list.setCellFactory(
+        ignored ->
+            new ListCell<>() {
+              @Override
+              protected void updateItem(StaffPayment item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.toString());
+                setWrapText(true);
+              }
+            });
+    TextField search = new TextField();
+    search.setPromptText("Buscar reserva, cliente, e-mail ou pagamento");
+    ComboBox<String> status = new ComboBox<>();
+    status.getItems().addAll("TODOS", "approved", "refunded", "pending", "CHECKOUT_CREATED");
+    status.getSelectionModel().selectFirst();
+    Button reload = secondary("Atualizar");
+    Label title = new Label("Pagamentos e comprovantes");
+    title.getStyleClass().add("page-title");
+    Label description =
+        new Label(
+            "Acompanhe confirmações, estornos e IDs do Mercado Pago sem visualizar dados sensíveis de cartão.");
+    description.getStyleClass().add("muted");
+    description.setWrapText(true);
+    HBox filters = new HBox(8, search, status, reload);
+    HBox.setHgrow(search, Priority.ALWAYS);
+    VBox left = new VBox(12, title, description, filters, list);
+    left.setPadding(new Insets(24));
+    VBox.setVgrow(list, Priority.ALWAYS);
+
+    Label booking = new Label("Selecione um pagamento");
+    booking.getStyleClass().add("section-title");
+    Label paymentStatus = new Label();
+    Label customer = new Label();
+    Label space = new Label();
+    Label amount = new Label();
+    Label providerPayment = new Label();
+    Label preference = new Label();
+    Label updated = new Label();
+    for (Label label :
+        List.of(paymentStatus, customer, space, amount, providerPayment, preference, updated)) {
+      label.setWrapText(true);
+      label.getStyleClass().add("muted");
+    }
+    Button receipt = primary("Abrir comprovante PDF");
+    receipt.setDisable(true);
+    VBox detail =
+        new VBox(
+            14,
+            booking,
+            paymentStatus,
+            customer,
+            space,
+            amount,
+            providerPayment,
+            preference,
+            updated,
+            receipt);
+    detail.setPadding(new Insets(28));
+    detail.setDisable(true);
+
+    AtomicReference<List<StaffPayment>> cache = new AtomicReference<>(List.of());
+    Runnable applyFilter =
+        () -> {
+          String query = search.getText() == null ? "" : search.getText().trim().toLowerCase();
+          String selected = status.getValue();
+          List<StaffPayment> filtered =
+              cache.get().stream()
+                  .filter(
+                      item ->
+                          "TODOS".equals(selected)
+                              || item.status().equalsIgnoreCase(selected))
+                  .filter(
+                      item ->
+                          query.isBlank()
+                              || (item.bookingId()
+                                      + " "
+                                      + item.customerName()
+                                      + " "
+                                      + item.customerEmail()
+                                      + " "
+                                      + item.spaceTitle()
+                                      + " "
+                                      + nullSafe(item.providerPaymentId()))
+                                  .toLowerCase()
+                                  .contains(query))
+                  .toList();
+          list.setItems(FXCollections.observableArrayList(filtered));
+        };
+    Consumer<List<StaffPayment>> render =
+        payments -> {
+          cache.set(payments);
+          applyFilter.run();
+        };
+    Runnable refresh = () -> run(() -> service.payments(session), render, reload);
+    search.textProperty().addListener((ignored, old, value) -> applyFilter.run());
+    status.setOnAction(ignored -> applyFilter.run());
+    reload.setOnAction(ignored -> refresh.run());
+    list.getSelectionModel()
+        .selectedItemProperty()
+        .addListener(
+            (ignored, old, payment) -> {
+              detail.setDisable(payment == null);
+              if (payment == null) return;
+              booking.setText(payment.bookingId() + " · " + payment.statusLabel());
+              paymentStatus.setText("Situação: " + payment.statusLabel());
+              customer.setText(
+                  "Cliente: " + payment.customerName() + "\n" + payment.customerEmail());
+              space.setText("Espaço: " + payment.spaceTitle());
+              amount.setText(
+                  "Valor: "
+                      + NumberFormat.getCurrencyInstance(new Locale("pt", "BR"))
+                          .format(payment.amount()));
+              providerPayment.setText(
+                  "Pagamento Mercado Pago: " + nullSafe(payment.providerPaymentId()));
+              preference.setText(
+                  "Preferência Mercado Pago: " + nullSafe(payment.providerPreferenceId()));
+              updated.setText("Última atualização: " + format(payment.updatedAt()));
+              receipt.setDisable(!payment.receiptAvailable());
+            });
+    receipt.setOnAction(
+        ignored -> {
+          StaffPayment payment = list.getSelectionModel().getSelectedItem();
+          if (payment == null || !payment.receiptAvailable()) return;
+          run(
+              () ->
+                  openTemporary(
+                      service.paymentReceipt(session, payment.id()),
+                      "comprovante-" + payment.bookingId() + ".pdf"),
+              this::openLocalFile,
+              receipt);
+        });
+    refresh.run();
+    autoRefresh(() -> service.payments(session), render);
+    SplitPane split = new SplitPane(left, detail);
+    split.setDividerPositions(.46);
+    return split;
   }
 
   private Node emptyState(String title, String message) {

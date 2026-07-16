@@ -177,9 +177,15 @@ export type OwnerDashboard = {
   }[];
   activeRentals: {
     bookingId: string;
+    spaceId: number;
     spaceTitle: string;
     customer: string;
+    customerEmail: string;
+    customerPhone?: string | null;
+    customerPhotoUrl?: string | null;
+    start: string;
     end: string;
+    total: number;
     customerConfirmed: boolean;
     ownerConfirmed: boolean;
   }[];
@@ -306,6 +312,8 @@ export const spaceAvailability = (spaceId: number) =>
   });
 export const checkoutBooking = (token: string, bookingId: string) =>
   authorized<Booking>(`/bookings/${bookingId}/checkout`, token, { method: 'POST' });
+export const cancelBooking = (token: string, bookingId: string) =>
+  authorized<Booking>(`/bookings/${bookingId}/cancel`, token, { method: 'POST' });
 export const eligibleReviews = (token: string) => authorized<EligibleReview[]>('/reviews/eligible', token);
 export const createReview = (token: string, bookingId: string, rating: number, comment: string) =>
   authorized('/reviews', token, { method: 'POST', body: JSON.stringify({ bookingId, rating, comment }) });

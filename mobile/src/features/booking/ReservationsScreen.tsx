@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { MainTabParamList, RootStackParamList } from '../../app/navigation/types';
-import { Booking, checkoutBooking, listBookings } from '../../core/api/marketplace';
+import { Booking, cancelBooking, checkoutBooking, listBookings } from '../../core/api/marketplace';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { PrimaryButton } from '../../shared/components/PrimaryButton';
 import { colors } from '../../shared/theme';
@@ -68,6 +68,29 @@ export function ReservationsScreen({ navigation }: BottomTabScreenProps<MainTabP
     }
   }
 
+  function cancel(item: Booking) {
+    if (!auth.token) return;
+    Alert.alert(
+      'Cancelar solicitação?',
+      'O contrato e o checkout desta reserva deixarão de ser válidos. Nenhuma cobrança será feita.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar reserva',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelBooking(auth.token!, item.id);
+              setItems(await listBookings(auth.token!, category));
+            } catch (e: any) {
+              Alert.alert('Reserva', e.message);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <Header />
@@ -76,7 +99,6 @@ export function ReservationsScreen({ navigation }: BottomTabScreenProps<MainTabP
           {[
             ['ALL', 'Todos'],
             ['PENDING', 'Pendentes'],
-            ['FUTURE', 'Futuros'],
             ['ACTIVE', 'Ativos'],
             ['COMPLETED', 'Encerrados'],
             ['CANCELLED', 'Cancelados'],
@@ -132,6 +154,9 @@ export function ReservationsScreen({ navigation }: BottomTabScreenProps<MainTabP
                   onPress={() => root?.navigate('BookingDocuments', { booking: item })}
                   secondary
                 />
+                {item.category === 'PENDING' && (
+                  <PrimaryButton label="Cancelar solicitação" onPress={() => cancel(item)} secondary />
+                )}
                 {item.category === 'ACTIVE' && (
                   <PrimaryButton label="Confirmar retirada (check-out)" onPress={() => checkout(item)} />
                 )}

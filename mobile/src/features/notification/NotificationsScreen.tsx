@@ -35,7 +35,13 @@ export function NotificationsScreen({
       await readNotification(token, i.id);
       refresh();
     }
-    if (i.referenceType === 'BOOKING') navigation.navigate('Main', { screen: 'Reservas' });
+    if (i.referenceType === 'BOOKING' && i.referenceId) {
+      if (i.type === 'OWNER_CHECKOUT_REQUIRED' || i.title === 'Confirme a retirada') {
+        navigation.navigate('OwnerRental', { bookingId: i.referenceId });
+      } else {
+        navigation.navigate('Main', { screen: 'Reservas' });
+      }
+    }
   }
   async function all() {
     if (token) {

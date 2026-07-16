@@ -60,6 +60,7 @@ stowup:
     mercado-pago:
       public-key: ${MERCADO_PAGO_PUBLIC_KEY:}
       access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+      test-mode: ${MERCADO_PAGO_TEST_MODE:false}
   listings:
     minimum-photos: ${STOWUP_MINIMUM_SPACE_PHOTOS:4}
   recovery:

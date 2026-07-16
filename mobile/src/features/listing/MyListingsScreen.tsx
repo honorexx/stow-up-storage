@@ -17,14 +17,23 @@ import {
 } from 'react-native';
 import { RootStackParamList } from '../../app/navigation/types';
 import { API_ORIGIN } from '../../core/api/auth';
-import { deleteOwnedSpace, listMySpaces, OwnerSpace, uploadSpacePhoto } from '../../core/api/marketplace';
+import {
+  deleteOwnedSpace,
+  getOwnerDashboard,
+  listMySpaces,
+  OwnerDashboard,
+  OwnerSpace,
+  uploadSpacePhoto,
+} from '../../core/api/marketplace';
 import { PrimaryButton } from '../../shared/components/PrimaryButton';
+import { spaceLifecycleLabel } from '../../shared/statusLabels';
 import { colors } from '../../shared/theme';
 import { useAuth } from '../auth/AuthContext';
 
 export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'MyListings'>) {
   const auth = useAuth();
   const [items, setItems] = useState<OwnerSpace[]>([]);
+  const [activeRentals, setActiveRentals] = useState<OwnerDashboard['activeRentals']>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<OwnerSpace | null>(null);
@@ -43,15 +52,19 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
       .then(setItems)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    getOwnerDashboard(auth.token)
+      .then((dashboard) => setActiveRentals(dashboard.activeRentals))
+      .catch(() => setActiveRentals([]));
   }, [auth.token]);
   useFocusEffect(refresh);
   useEffect(() => {
     if (!auth.token) return;
     const timer = setInterval(
       () =>
-        listMySpaces(auth.token!)
-          .then(setItems)
-          .catch(() => undefined),
+        Promise.all([
+          listMySpaces(auth.token!).then(setItems),
+          getOwnerDashboard(auth.token!).then((dashboard) => setActiveRentals(dashboard.activeRentals)),
+        ]).catch(() => undefined),
       8000,
     );
     return () => clearInterval(timer);
@@ -133,11 +146,18 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
               </View>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => navigation.navigate('ListingDocument', { spaceId: item.id, title: item.title })}
-              style={styles.card}
-            >
+          renderItem={({ item }) => {
+            const rental = activeRentals.find((current) => current.spaceId === item.id);
+            const occupied = item.lifecycleStatus === 'OCCUPIED' && !!rental;
+            return (
+              <Pressable
+                onPress={() =>
+                  occupied
+                    ? navigation.navigate('OwnerRental', { bookingId: rental.bookingId })
+                    : navigation.navigate('ListingDocument', { spaceId: item.id, title: item.title })
+                }
+                style={styles.card}
+              >
               {item.photos?.[0] ? (
                 <Image source={{ uri: `${API_ORIGIN}${item.photos[0]}` }} style={styles.photo} />
               ) : (
@@ -151,7 +171,7 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
                     {item.title}
                   </Text>
                   <Text style={[styles.status, item.lifecycleStatus === 'ACTIVE' && styles.published]}>
-                    {item.lifecycleStatus}
+                    {spaceLifecycleLabel(item.lifecycleStatus)}
                   </Text>
                 </View>
                 <Text style={styles.meta}>
@@ -174,7 +194,22 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
                 <Text style={styles.address}>
                   {item.addressLine}, {item.addressNumber}
                 </Text>
-                <Text style={styles.documentHint}>Toque para documentos e acompanhamento</Text>
+                <Text style={occupied ? styles.rentalHint : styles.documentHint}>
+                  {occupied
+                    ? `Locado por ${rental.customer} · toque para acompanhar`
+                    : 'Toque para documentos e acompanhamento'}
+                </Text>
+                {occupied && (
+                  <Pressable
+                    style={styles.rentalButton}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      navigation.navigate('OwnerRental', { bookingId: rental.bookingId });
+                    }}
+                  >
+                    <Text style={styles.rentalButtonText}>Acompanhar locação</Text>
+                  </Pressable>
+                )}
                 <View style={styles.actions}>
                   <Text
                     onPress={(e) => {
@@ -197,7 +232,8 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
                 </View>
               </View>
             </Pressable>
-          )}
+            );
+          }}
         />
       )}
       <Modal transparent visible={!!deleting} animationType="fade" onRequestClose={() => setDeleting(null)}>
@@ -313,6 +349,15 @@ const styles = StyleSheet.create({
   price: { color: colors.navy, fontWeight: '900', fontSize: 17, marginTop: 10 },
   address: { color: colors.muted, fontSize: 12, marginTop: 3 },
   documentHint: { color: colors.orange, fontSize: 12, fontWeight: '800', marginTop: 9 },
+  rentalHint: { color: colors.success, fontSize: 12, fontWeight: '800', marginTop: 9 },
+  rentalButton: {
+    borderRadius: 12,
+    backgroundColor: colors.navy,
+    paddingVertical: 11,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  rentalButtonText: { color: '#fff', fontWeight: '900' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   photoAction: {
     flex: 1,

@@ -3,6 +3,7 @@ package br.com.stowup.payment.adapter.out.persistence;
 import br.com.stowup.booking.*;
 import br.com.stowup.payment.application.port.out.PaymentOrderStore;
 import br.com.stowup.payment.domain.*;
+import br.com.stowup.space.SpaceRepository;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,31 +16,58 @@ import org.springframework.web.server.ResponseStatusException;
 public class JpaPaymentOrderStore implements PaymentOrderStore {
   private final BookingRepository bookings;
   private final PaymentTransactionRepository transactions;
+  private final SpaceRepository spaces;
 
   public JpaPaymentOrderStore(
-      BookingRepository bookings, PaymentTransactionRepository transactions) {
+      BookingRepository bookings,
+      PaymentTransactionRepository transactions,
+      SpaceRepository spaces) {
     this.bookings = bookings;
     this.transactions = transactions;
+    this.spaces = spaces;
   }
 
   @Override
-  @Transactional(readOnly = true)
+  @Transactional
   public PaymentOrder requireOwnedBooking(String bookingId, String customerEmail) {
     Booking booking =
         bookings
-            .findById(bookingId)
+            .findByIdForUpdate(bookingId)
             .filter(item -> item.getCustomer().getEmail().equalsIgnoreCase(customerEmail))
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada."));
     if (booking.getStatus() != BookingStatus.PENDING)
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "Esta reserva não aceita um novo pagamento.");
+    spaces
+        .findByIdForBooking(booking.getSpace().getId())
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Espaço não encontrado."));
+    if (bookings.hasConfirmedConflictExcluding(
+        booking.getId(),
+        booking.getSpace().getId(),
+        booking.getStartDate(),
+        booking.getEndDate())) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
+          "Este período acabou de ser reservado por outro cliente. Nenhuma cobrança foi realizada.");
+    }
     return new PaymentOrder(
         booking.getId(),
         "Locação StowUp - " + booking.getSpace().getTitle(),
         booking.getTotal(),
         booking.getCustomer().getName(),
         booking.getCustomer().getEmail());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public void requireOwnership(String bookingId, String customerEmail) {
+    bookings
+        .findById(bookingId)
+        .filter(item -> item.getCustomer().getEmail().equalsIgnoreCase(customerEmail))
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada."));
   }
 
   @Override

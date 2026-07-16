@@ -10,6 +10,7 @@ $twilioTokenFile = Join-Path $runtime 'twilio-auth-token.dpapi'
 $twilioFromFile = Join-Path $runtime 'twilio-from-number.txt'
 $mercadoPagoPublicKeyFile = Join-Path $runtime 'mercado-pago-public-key.txt'
 $mercadoPagoTokenFile = Join-Path $runtime 'mercado-pago-access-token.dpapi'
+$mercadoPagoTestModeFile = Join-Path $runtime 'mercado-pago-test-mode.txt'
 $toolchainFile = Join-Path $runtime 'toolchain.ps1'
 $backendEnvironmentFile = Join-Path $runtime 'backend.env.ps1'
 $backendPidFile = Join-Path $runtime 'backend.pid'
@@ -111,6 +112,11 @@ if ((Test-Path -LiteralPath $mercadoPagoPublicKeyFile) -and (Test-Path -LiteralP
             $env:MERCADO_PAGO_ACCESS_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($mercadoPagoPointer)
         } finally {
             [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($mercadoPagoPointer)
+        }
+        $env:MERCADO_PAGO_TEST_MODE = if (Test-Path -LiteralPath $mercadoPagoTestModeFile) {
+            (Get-Content -LiteralPath $mercadoPagoTestModeFile -Raw -Encoding ascii).Trim()
+        } else {
+            'true'
         }
     } catch {
         Write-Warning 'As credenciais do Mercado Pago não puderam ser lidas. Execute tools\configure-mercado-pago.ps1 novamente.'

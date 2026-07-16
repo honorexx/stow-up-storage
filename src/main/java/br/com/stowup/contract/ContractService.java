@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ContractService implements ContractPaymentPolicy {
   private final RentalContractRepository contracts;
   private final BookingRepository bookings;
+  private final br.com.stowup.space.SpaceRepository spaces;
   private final UserRepository users;
   private final ContractDocumentGenerator documents;
   private final Path contractRoot;
@@ -31,6 +32,7 @@ public class ContractService implements ContractPaymentPolicy {
   public ContractService(
       RentalContractRepository contracts,
       BookingRepository bookings,
+      br.com.stowup.space.SpaceRepository spaces,
       UserRepository users,
       ContractDocumentGenerator documents,
       NotificationService notifications,
@@ -38,6 +40,7 @@ public class ContractService implements ContractPaymentPolicy {
       @Value("${stowup.uploads.directory}") String uploadDirectory) {
     this.contracts = contracts;
     this.bookings = bookings;
+    this.spaces = spaces;
     this.users = users;
     this.documents = documents;
     this.notifications = notifications;
@@ -154,7 +157,7 @@ public class ContractService implements ContractPaymentPolicy {
 
   @Transactional
   @Override
-  public void confirmBookingAfterApprovedPayment(String bookingId) {
+  public boolean confirmBookingAfterApprovedPayment(String bookingId) {
     RentalContract contract =
         contracts
             .findByBookingId(bookingId)
@@ -167,30 +170,72 @@ public class ContractService implements ContractPaymentPolicy {
           HttpStatus.CONFLICT,
           "O contrato precisa estar aprovado antes da confirmação do pagamento.");
     }
-    if (contract.getBooking().getStatus() == BookingStatus.CONFIRMED
-        || contract.getBooking().getStatus() == BookingStatus.COMPLETED) return;
-    if (contract.getBooking().getStatus() != BookingStatus.PENDING) {
+    Booking booking =
+        bookings
+            .findByIdForUpdate(bookingId)
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada."));
+    spaces
+        .findByIdForBooking(booking.getSpace().getId())
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Espaço não encontrado."));
+    if (booking.getStatus() == BookingStatus.CONFIRMED
+        || booking.getStatus() == BookingStatus.COMPLETED) return true;
+    if (booking.getStatus() == BookingStatus.CANCELLED) return false;
+    if (booking.getStatus() != BookingStatus.PENDING) {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "A reserva não está aguardando pagamento.");
     }
-    contract.getBooking().setStatus(BookingStatus.CONFIRMED);
-    contract.getBooking().getSpace().occupy(contract.getBooking().getReservedCapacity());
+    if (bookings.hasConfirmedConflictExcluding(
+        booking.getId(), booking.getSpace().getId(), booking.getStartDate(), booking.getEndDate())) {
+      booking.cancel();
+      notifications.send(
+          booking.getCustomer(),
+          "BOOKING_LOST",
+          "Espaço reservado por outro cliente",
+          "Outro cliente concluiu o pagamento antes. O valor desta tentativa será estornado.",
+          "BOOKING",
+          bookingId);
+      audit.record(
+          null,
+          "BOOKING_PAYMENT_CONFLICT",
+          "BOOKING",
+          bookingId,
+          "Reserva cancelada e pagamento encaminhado para estorno");
+      return false;
+    }
+    booking.setStatus(BookingStatus.CONFIRMED);
+    booking.getSpace().occupy(booking.getReservedCapacity());
+    for (Booking pending :
+        bookings.findOverlappingPending(
+            booking.getId(), booking.getSpace().getId(), booking.getStartDate(), booking.getEndDate())) {
+      pending.cancel();
+      notifications.send(
+          pending.getCustomer(),
+          "BOOKING_UNAVAILABLE",
+          "Período não está mais disponível",
+          booking.getSpace().getTitle()
+              + " foi confirmado por outro cliente. Sua solicitação foi cancelada sem cobrança.",
+          "BOOKING",
+          pending.getId());
+    }
     notifications.send(
-        contract.getBooking().getCustomer(),
+        booking.getCustomer(),
         "BOOKING_CONFIRMED",
         "Reserva confirmada",
         "Pagamento aprovado e contrato ativo.",
         "BOOKING",
         bookingId);
     notifications.send(
-        contract.getBooking().getSpace().getOwner(),
+        booking.getSpace().getOwner(),
         "BOOKING_CONFIRMED",
         "Nova locação confirmada",
-        contract.getBooking().getSpace().getTitle() + " foi reservado.",
+        booking.getSpace().getTitle() + " foi reservado.",
         "BOOKING",
         bookingId);
     audit.record(
         null, "PAYMENT_APPROVED", "BOOKING", bookingId, "Reserva confirmada automaticamente");
+    return true;
   }
 
   public Path generatedPath(RentalContract contract) {

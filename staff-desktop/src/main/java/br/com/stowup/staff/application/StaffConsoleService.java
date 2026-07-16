@@ -32,6 +32,16 @@ public final class StaffConsoleService {
     return gateway.dashboard(session);
   }
 
+  public List<StaffPayment> payments(StaffSession session) {
+    requireMaster(session);
+    return gateway.payments(session);
+  }
+
+  public byte[] paymentReceipt(StaffSession session, String id) {
+    requireMaster(session);
+    return gateway.paymentReceipt(session, id);
+  }
+
   public List<AppUser> appUsers(StaffSession session) {
     requireMaster(session);
     return gateway.appUsers(session);

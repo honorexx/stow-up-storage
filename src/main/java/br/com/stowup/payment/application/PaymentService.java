@@ -3,6 +3,7 @@ package br.com.stowup.payment.application;
 import br.com.stowup.payment.application.port.out.*;
 import br.com.stowup.payment.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PaymentService {
@@ -27,14 +28,29 @@ public class PaymentService {
     return checkout;
   }
 
+  @Transactional
   public void receiveProviderNotification(String providerPaymentId) {
     ProviderPayment payment = gateway.findPayment(providerPaymentId);
-    orders.applyProviderPayment(payment);
-    if ("approved".equalsIgnoreCase(payment.status()))
-      contracts.confirmBookingAfterApprovedPayment(payment.externalReference());
+    apply(payment);
+  }
+
+  @Transactional
+  public boolean reconcile(String bookingId, String customerEmail) {
+    orders.requireOwnership(bookingId, customerEmail);
+    gateway.findLatestPayment(bookingId).ifPresent(this::apply);
+    return orders.isApproved(bookingId);
   }
 
   public boolean isApproved(String bookingId) {
     return orders.isApproved(bookingId);
+  }
+
+  protected void apply(ProviderPayment payment) {
+    orders.applyProviderPayment(payment);
+    if ("approved".equalsIgnoreCase(payment.status())
+        && !contracts.confirmBookingAfterApprovedPayment(payment.externalReference())) {
+      ProviderPayment refunded = gateway.refundPayment(payment.paymentId());
+      orders.applyProviderPayment(refunded);
+    }
   }
 }

@@ -64,6 +64,8 @@ export function OwnerDashboardScreen({
 
   useEffect(() => {
     refresh();
+    const timer = setInterval(refresh, 8000);
+    return () => clearInterval(timer);
   }, [refresh]);
 
   async function confirmCheckout(bookingId: string) {
@@ -123,19 +125,26 @@ export function OwnerDashboardScreen({
           <Metric label="Contratos concluídos" value={report?.completedContracts ?? 0} />
         </View>
 
-        <Text style={s.section}>Locações em andamento</Text>
+        <Text style={s.section}>Locações confirmadas dos meus espaços</Text>
         {data.activeRentals.length ? (
           data.activeRentals.map((item) => (
             <View key={item.bookingId} style={s.row}>
               <Text style={s.rowTitle}>{item.spaceTitle}</Text>
               <Text style={s.muted}>
-                {item.customer} · término {new Date(`${item.end}T12:00:00`).toLocaleDateString('pt-BR')}
+                {item.customer} · início {new Date(`${item.start}T12:00:00`).toLocaleDateString('pt-BR')} · término{' '}
+                {new Date(`${item.end}T12:00:00`).toLocaleDateString('pt-BR')}
               </Text>
               <Text style={s.muted}>
                 {item.customerConfirmed
                   ? 'Cliente confirmou a retirada'
                   : 'Retirada ainda não confirmada pelo cliente'}
               </Text>
+              <Pressable
+                style={s.details}
+                onPress={() => navigation.navigate('OwnerRental', { bookingId: item.bookingId })}
+              >
+                <Text style={s.detailsText}>Ver locatário e acompanhar locação</Text>
+              </Pressable>
               {!item.ownerConfirmed && (
                 <Pressable style={s.checkout} onPress={() => confirmCheckout(item.bookingId)}>
                   <Text style={s.checkoutText}>Confirmar retirada dos itens</Text>
@@ -144,7 +153,7 @@ export function OwnerDashboardScreen({
             </View>
           ))
         ) : (
-          <Text style={s.empty}>Nenhuma locação em andamento.</Text>
+          <Text style={s.empty}>Nenhuma locação confirmada para seus espaços.</Text>
         )}
 
         <Text style={s.section}>Próximos contratos</Text>
@@ -257,6 +266,15 @@ const s = StyleSheet.create({
   rowTitle: { fontWeight: '900', color: colors.text },
   muted: { color: colors.muted, marginTop: 4 },
   money: { color: colors.orange, fontWeight: '900', marginTop: 7 },
+  details: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.navy,
+    padding: 12,
+    alignItems: 'center',
+  },
+  detailsText: { color: colors.navy, fontWeight: '900', textAlign: 'center' },
   checkout: {
     marginTop: 12,
     borderRadius: 12,

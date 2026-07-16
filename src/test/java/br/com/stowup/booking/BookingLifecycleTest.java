@@ -127,4 +127,43 @@ class BookingLifecycleTest {
     assertThat(booking.confirmCheckout(false, LocalDate.of(2026, 8, 20))).isTrue();
     assertThat(booking.getStatus()).isEqualTo(BookingStatus.COMPLETED);
   }
+
+  @Test
+  void pendingBookingCanBeCancelledBeforePayment() {
+    UserAccount owner = new UserAccount("Proprietário", "owner4@stowup.test", "hash", Role.OWNER);
+    UserAccount customer =
+        new UserAccount("Cliente", "customer4@stowup.test", "hash", Role.CUSTOMER);
+    Space space =
+        new Space(
+            "Armário",
+            "Curitiba",
+            "Centro",
+            "Armário",
+            2,
+            new BigDecimal("120.00"),
+            0,
+            0,
+            0,
+            true,
+            "Armário individual para armazenamento",
+            List.of("Área interna"),
+            "#002B5B",
+            "#FF5A1F",
+            owner);
+    Booking booking =
+        new Booking(
+            "RES-TESTE4",
+            space,
+            customer,
+            LocalDate.of(2026, 9, 1),
+            1,
+            new BigDecimal("120.00"),
+            BookingStatus.PENDING,
+            "CTR-TESTE4",
+            "MERCADO_PAGO");
+
+    booking.cancel();
+
+    assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+  }
 }
