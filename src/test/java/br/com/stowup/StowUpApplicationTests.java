@@ -1,0 +1,247 @@
+package br.com.stowup;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import br.com.stowup.user.Role;
+import br.com.stowup.user.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class StowUpApplicationTests {
+  @Autowired MockMvc mvc;
+  @Autowired ObjectMapper json;
+  @Autowired UserRepository users;
+
+  @Test
+  void doesNotExposePrivateUploadedDocumentsAsStaticFiles() throws Exception {
+    mvc.perform(get("/uploads/contracts/signed-contract.pdf")).andExpect(status().isForbidden());
+    mvc.perform(get("/uploads/listing-documents/signed/document.pdf"))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/uploads/space-documents/1/license.pdf")).andExpect(status().isForbidden());
+    mvc.perform(get("/uploads/profiles/missing.png")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void registersAuthenticatesAndUpdatesARealAccountWithoutSeededSpaces() throws Exception {
+    mvc.perform(get("/api/spaces")).andExpect(status().isOk()).andExpect(content().json("[]"));
+
+    String registerBody =
+        mvc.perform(
+                post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"name\":\"Cliente Teste\",\"email\":\"cliente@stowup.test\",\"password\":\"Senha@123\",\"phone\":\"+55 11 99999-0000\",\"cpf\":\"529.982.247-25\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"1000\",\"addressComplement\":\"Apto 10\",\"district\":\"Bela Vista\",\"city\":\"São Paulo\",\"state\":\"SP\",\"acceptedTerms\":true,\"termsVersion\":\"2026-07-13\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.token").isString())
+            .andExpect(jsonPath("$.user.name").value("Cliente Teste"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JsonNode register = json.readTree(registerBody);
+
+    mvc.perform(
+            post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"name\":\"Outro Cliente\",\"email\":\"cliente@stowup.test\",\"password\":\"Senha@123\",\"phone\":\"+55 11 97777-0000\",\"cpf\":\"390.533.447-05\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"10\",\"addressComplement\":\"\",\"district\":\"Bela Vista\",\"city\":\"São Paulo\",\"state\":\"SP\",\"acceptedTerms\":true,\"termsVersion\":\"2026-07-13\"}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message").value("Este e-mail já está cadastrado."));
+
+    mvc.perform(
+            patch("/api/profile")
+                .header("Authorization", "Bearer " + register.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"name\":\"Cliente Atualizado\",\"phone\":\"+55 11 99999-0000\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"1001\",\"addressComplement\":\"\",\"district\":\"Bela Vista\",\"city\":\"São Paulo\",\"state\":\"SP\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Cliente Atualizado"))
+        .andExpect(jsonPath("$.phone").value("+55 11 99999-0000"));
+
+    mvc.perform(
+            get("/api/owner/spaces")
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(content().json("[]"));
+
+    mvc.perform(
+            post("/api/owner/spaces")
+                .header("Authorization", "Bearer " + register.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"title\":\"Box seco próximo ao metrô\",\"city\":\"São Paulo\",\"district\":\"Bela Vista\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"1001\",\"addressComplement\":\"Subsolo\",\"state\":\"SP\",\"type\":\"Box\",\"size\":8,\"heightMeters\":2.5,\"lengthMeters\":4,\"depthMeters\":2,\"price\":350.00,\"latitude\":-23.5614,\"longitude\":-46.6559,\"description\":\"Espaço seco, monitorado e com acesso controlado todos os dias.\",\"features\":[\"Câmeras\",\"Acesso controlado\"]}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.verified").value(false))
+        .andExpect(jsonPath("$.photos").isArray())
+        .andExpect(jsonPath("$.addressLine").value("Avenida Paulista"));
+
+    mvc.perform(
+            get("/api/owner/spaces")
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].title").value("Box seco próximo ao metrô"));
+
+    mvc.perform(get("/api/spaces")).andExpect(status().isOk()).andExpect(content().json("[]"));
+
+    String renterBody =
+        mvc.perform(
+                post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"name\":\"Locatário Teste\",\"email\":\"locatario@stowup.test\",\"password\":\"Senha@123\",\"phone\":\"+55 (11) 98888-0000\",\"cpf\":\"111.444.777-35\",\"postalCode\":\"01001-000\",\"addressLine\":\"Praça da Sé\",\"addressNumber\":\"10\",\"addressComplement\":\"\",\"district\":\"Sé\",\"city\":\"São Paulo\",\"state\":\"SP\",\"acceptedTerms\":true,\"termsVersion\":\"2026-07-13\"}"))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JsonNode renter = json.readTree(renterBody);
+    String conversationBody =
+        mvc.perform(
+                post("/api/conversations")
+                    .header("Authorization", "Bearer " + renter.get("token").asText())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"spaceId\":1}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.participantName").value("Cliente Atualizado"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String conversationId = json.readTree(conversationBody).get("id").asText();
+    mvc.perform(
+            post("/api/conversations/" + conversationId + "/messages")
+                .header("Authorization", "Bearer " + renter.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"Olá, o espaço ainda está disponível?\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.mine").value(true));
+    mvc.perform(
+            get("/api/conversations")
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].lastMessage").value("Olá, o espaço ainda está disponível?"));
+
+    String supportTicketBody =
+        mvc.perform(
+                post("/api/support/tickets")
+                    .header("Authorization", "Bearer " + register.get("token").asText())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"category\":\"LISTING\",\"subject\":\"Ajuda com anúncio\",\"description\":\"Preciso de ajuda com meu anúncio.\"}"))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String supportTicketId = json.readTree(supportTicketBody).get("id").asText();
+    mvc.perform(
+            get("/api/staff/support/conversations")
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isForbidden());
+
+    String staffBody =
+        mvc.perform(
+                post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"name\":\"Atendente Teste\",\"email\":\"suporte@stowup.test\",\"password\":\"Senha@123\",\"phone\":\"+55 (11) 96666-0000\",\"cpf\":\"123.456.789-09\",\"postalCode\":\"01001-000\",\"addressLine\":\"Praça da Sé\",\"addressNumber\":\"20\",\"addressComplement\":\"\",\"district\":\"Sé\",\"city\":\"São Paulo\",\"state\":\"SP\",\"acceptedTerms\":true,\"termsVersion\":\"2026-07-13\"}"))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JsonNode staff = json.readTree(staffBody);
+    var staffAccount = users.findByEmailIgnoreCase("suporte@stowup.test").orElseThrow();
+    staffAccount.setRole(Role.SUPPORT);
+    users.saveAndFlush(staffAccount);
+    String queueBody =
+        mvc.perform(
+                get("/api/staff/support/conversations")
+                    .header("Authorization", "Bearer " + staff.get("token").asText()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].customerEmail").value("cliente@stowup.test"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String supportConversationId = json.readTree(queueBody).get(0).get("id").asText();
+    mvc.perform(
+            post("/api/staff/support/conversations/" + supportConversationId + "/messages")
+                .header("Authorization", "Bearer " + staff.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"Olá! Já estamos verificando o seu anúncio.\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.senderType").value("SUPPORT"));
+    mvc.perform(
+            get("/api/support/tickets/" + supportTicketId + "/messages")
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[1].senderType").value("SUPPORT"));
+
+    String masterBody =
+        mvc.perform(
+                post("/api/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"name\":\"Gestor Mestre\",\"email\":\"mestre@stowup.test\",\"password\":\"SenhaMestre@123\",\"phone\":\"+55 (11) 95555-0000\",\"cpf\":\"987.654.321-00\",\"postalCode\":\"01001-000\",\"addressLine\":\"Praça da Sé\",\"addressNumber\":\"30\",\"addressComplement\":\"\",\"district\":\"Sé\",\"city\":\"São Paulo\",\"state\":\"SP\",\"acceptedTerms\":true,\"termsVersion\":\"2026-07-13\"}"))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JsonNode master = json.readTree(masterBody);
+    var masterAccount = users.findByEmailIgnoreCase("mestre@stowup.test").orElseThrow();
+    masterAccount.setRole(Role.ADMIN);
+    users.saveAndFlush(masterAccount);
+
+    String createdStaffBody =
+        mvc.perform(
+                post("/api/admin/staff")
+                    .header("Authorization", "Bearer " + master.get("token").asText())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        "{\"name\":\"Analista Teste\",\"email\":\"analista@stowup.test\",\"password\":\"Temporaria@123\",\"role\":\"LISTING_ANALYST\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.role").value("LISTING_ANALYST"))
+            .andExpect(
+                jsonPath("$.staffCode").value(org.hamcrest.Matchers.matchesPattern("SU\\d{6}")))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String staffCode = json.readTree(createdStaffBody).get("staffCode").asText();
+
+    String moderatorBody =
+        mvc.perform(
+                post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"" + staffCode + "\",\"password\":\"Temporaria@123\"}"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String moderatorToken = json.readTree(moderatorBody).get("token").asText();
+    mvc.perform(
+            get("/api/staff/moderation/spaces/pending")
+                .header("Authorization", "Bearer " + moderatorToken))
+        .andExpect(status().isOk());
+    mvc.perform(
+            get("/api/staff/support/conversations")
+                .header("Authorization", "Bearer " + moderatorToken))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/admin/staff").header("Authorization", "Bearer " + moderatorToken))
+        .andExpect(status().isForbidden());
+
+    mvc.perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"cliente@stowup.test\",\"password\":\"Senha@123\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.user.name").value("Cliente Atualizado"))
+        .andExpect(jsonPath("$.user.role").value("OWNER"))
+        .andExpect(jsonPath("$.user.cpfMasked").value("***.***.***-25"));
+  }
+}

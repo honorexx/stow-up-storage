@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: stowup
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/stowup}
+    username: ${DATABASE_USERNAME:stowup}
+    password: ${DATABASE_PASSWORD:stowup}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${SMTP_AUTH:true}
+      "[mail.smtp.starttls.enable]": ${SMTP_STARTTLS:true}
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: ${SERVER_ERROR_INCLUDE_MESSAGE:never}
+
+stowup:
+  master:
+    enabled: ${STOWUP_MASTER_ENABLED:false}
+    name: ${STOWUP_MASTER_NAME:Usuário Mestre}
+    email: ${STOWUP_MASTER_EMAIL:master@stowup.local}
+    password: ${STOWUP_MASTER_PASSWORD:}
+  jwt:
+    issuer: stowup-api
+    secret: ${JWT_SECRET}
+    expiration-hours: 24
+  data:
+    encryption-key: ${DATA_ENCRYPTION_KEY}
+  uploads:
+    directory: ${UPLOAD_DIRECTORY:./uploads}
+  public-url: ${STOWUP_PUBLIC_URL:http://localhost:8080}
+  payments:
+    mercado-pago:
+      public-key: ${MERCADO_PAGO_PUBLIC_KEY:}
+      access-token: ${MERCADO_PAGO_ACCESS_TOKEN:}
+  listings:
+    minimum-photos: ${STOWUP_MINIMUM_SPACE_PHOTOS:4}
+  recovery:
+    delivery-mode: ${PASSWORD_RECOVERY_DELIVERY_MODE:log}
+    expires-in-minutes: ${PASSWORD_RECOVERY_EXPIRES_MINUTES:10}
+    resend-after-seconds: ${PASSWORD_RECOVERY_RESEND_SECONDS:30}
+    email-from: ${PASSWORD_RECOVERY_EMAIL_FROM:no-reply@stowup.local}
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      from-number: ${TWILIO_FROM_NUMBER:}

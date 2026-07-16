@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "StowUp",
+    "slug": "stowup",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/stowup-icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/stowup-splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.stowup.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O StowUp usa sua localização para mostrar espaços próximos no mapa."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/stowup-adaptive-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
