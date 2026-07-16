@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="StowUp Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="stowup" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="br.com.stowup.StowUpApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
