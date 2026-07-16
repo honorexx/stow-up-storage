@@ -163,18 +163,20 @@ export function CreateListingScreen({
       });
       await auth.refreshProfile();
       setPhase('Enviando as fotos...');
-      let failedPhotos = 0;
-      for (const photo of photos) {
+      const failedPhotos: string[] = [];
+      for (const [index, photo] of photos.entries()) {
         try {
           await uploadSpacePhoto(auth.token, created.id, photo);
-        } catch {
-          failedPhotos++;
+        } catch (e) {
+          failedPhotos.push(
+            e instanceof Error ? `Foto ${index + 1}: ${e.message}` : `Foto ${index + 1}: falha no envio.`,
+          );
         }
       }
-      if (failedPhotos)
+      if (failedPhotos.length)
         Alert.alert(
           'Anúncio cadastrado',
-          `O anúncio foi salvo, mas ${failedPhotos} foto(s) não foram enviadas. Você poderá tentar novamente em Meus anúncios.`,
+          `O anúncio foi salvo, mas ${failedPhotos.length} foto(s) não foram enviadas.\n\n${failedPhotos.join('\n')}\n\nTente novamente em Meus anúncios.`,
         );
       navigation.replace('ListingDocument', { spaceId: created.id, title: created.title });
     } catch (e) {

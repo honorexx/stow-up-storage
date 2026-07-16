@@ -1,6 +1,7 @@
 package br.com.stowup;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -84,6 +86,16 @@ class StowUpApplicationTests {
         .andExpect(jsonPath("$.verified").value(false))
         .andExpect(jsonPath("$.photos").isArray())
         .andExpect(jsonPath("$.addressLine").value("Avenida Paulista"));
+
+    byte[] twoMegabyteImage = new byte[2 * 1024 * 1024];
+    MockMultipartFile photo =
+        new MockMultipartFile("file", "espaco.jpg", "image/jpeg", twoMegabyteImage);
+    mvc.perform(
+            multipart("/api/owner/spaces/1/photos")
+                .file(photo)
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.photos.length()").value(1));
 
     mvc.perform(
             get("/api/owner/spaces")

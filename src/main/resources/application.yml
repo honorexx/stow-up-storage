@@ -1,6 +1,10 @@
 spring:
   application:
     name: stowup
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_FILE_SIZE:10MB}
+      max-request-size: ${MAX_UPLOAD_REQUEST_SIZE:12MB}
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:

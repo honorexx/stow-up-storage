@@ -14,11 +14,42 @@ $toolchainFile = Join-Path $runtime 'toolchain.ps1'
 $backendEnvironmentFile = Join-Path $runtime 'backend.env.ps1'
 $backendPidFile = Join-Path $runtime 'backend.pid'
 
+function Stop-ExistingBackend {
+    $listener = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $listener) { return }
+    $knownProcess = if (Test-Path -LiteralPath $backendPidFile) {
+        (Get-Content -LiteralPath $backendPidFile -ErrorAction SilentlyContinue | Select-Object -First 1) -split '\|'
+    }
+    if ($knownProcess -and [int]$knownProcess[0] -eq $listener.OwningProcess) {
+        Stop-Process -Id $listener.OwningProcess -Force
+        Wait-Process -Id $listener.OwningProcess -Timeout 10 -ErrorAction SilentlyContinue
+        return
+    }
+    throw 'A porta 8080 está sendo usada por outro programa ou por outra instalação do StowUp. Encerre-o antes de iniciar esta cópia.'
+}
+
 if (Test-Path -LiteralPath $toolchainFile) { . $toolchainFile }
 if (Test-Path -LiteralPath $backendEnvironmentFile) { . $backendEnvironmentFile }
 
-if (-not (Test-Path -LiteralPath $jar)) {
-    throw 'O backend ainda não foi empacotado. Execute o Maven package pelo IntelliJ.'
+$projectInputs = @(
+    Get-Item -LiteralPath (Join-Path $root 'pom.xml')
+    Get-ChildItem -LiteralPath (Join-Path $root 'src') -Recurse -File
+)
+$latestProjectChange = ($projectInputs | Measure-Object -Property LastWriteTimeUtc -Maximum).Maximum
+$jarIsOutdated = -not (Test-Path -LiteralPath $jar)
+if (-not $jarIsOutdated) {
+    $jarInfo = Get-Item -LiteralPath $jar
+    $jarIsOutdated =
+        $jarInfo.Length -lt 10MB -or
+        $jarInfo.LastWriteTimeUtc -lt $latestProjectChange
+}
+if ($jarIsOutdated) {
+    Write-Host 'Alterações detectadas. Empacotando o backend...' -ForegroundColor Cyan
+    Stop-ExistingBackend
+    & (Join-Path $PSScriptRoot 'mvn.cmd') -DskipTests package
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $jar)) {
+        throw 'Não foi possível empacotar o backend. Verifique os erros do Maven acima.'
+    }
 }
 & (Join-Path $PSScriptRoot 'start-postgres.ps1')
 
@@ -86,18 +117,7 @@ if ((Test-Path -LiteralPath $mercadoPagoPublicKeyFile) -and (Test-Path -LiteralP
     }
 }
 
-$listener = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($listener) {
-    $knownProcess = if (Test-Path -LiteralPath $backendPidFile) {
-        (Get-Content -LiteralPath $backendPidFile -ErrorAction SilentlyContinue | Select-Object -First 1) -split '\|'
-    }
-    if ($knownProcess -and [int]$knownProcess[0] -eq $listener.OwningProcess) {
-        Stop-Process -Id $listener.OwningProcess -Force
-        Wait-Process -Id $listener.OwningProcess -Timeout 10 -ErrorAction SilentlyContinue
-    } else {
-        throw 'A porta 8080 está sendo usada por outro programa ou por outra instalação do StowUp. Encerre-o antes de iniciar esta cópia.'
-    }
-}
+Stop-ExistingBackend
 
 $java = if ($STOWUP_JAVA_EXE -and (Test-Path -LiteralPath $STOWUP_JAVA_EXE)) {
     $STOWUP_JAVA_EXE

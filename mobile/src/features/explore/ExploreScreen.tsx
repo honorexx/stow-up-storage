@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
+import { useFocusEffect } from '@react-navigation/native';
 import { listNotifications, listSpaces, Space } from '../../core/api/marketplace';
 import { BrandMark } from '../../shared/components/BrandMark';
 import { colors, shadow } from '../../shared/theme';
@@ -44,9 +45,11 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
   const root = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const auth = useAuth();
   const map = useRef<MapView>(null);
+  const fallbackPositioned = useRef(false);
   const [region, setRegion] = useState(SAO_PAULO);
   const [searchRegion, setSearchRegion] = useState<Region | null>(null);
   const [locationAllowed, setLocationAllowed] = useState(false);
+  const [locationResolved, setLocationResolved] = useState(false);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('Todos');
@@ -93,31 +96,60 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
     }
   }
 
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
   useEffect(() => {
-    refresh();
+    refreshRef.current();
     Location.requestForegroundPermissionsAsync()
       .then(async ({ status }) => {
         if (status !== 'granted') return;
-        setLocationAllowed(true);
         const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setLocationAllowed(true);
         const next = {
           latitude: current.coords.latitude,
           longitude: current.coords.longitude,
-          latitudeDelta: 0.08,
-          longitudeDelta: 0.08,
+          latitudeDelta: 0.25,
+          longitudeDelta: 0.25,
         };
         setRegion(next);
         setSearchRegion(next);
         map.current?.animateToRegion(next, 500);
         setSpaces(await listSpaces({ userLatitude: next.latitude, userLongitude: next.longitude }));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => setLocationResolved(true));
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => refresh(true), 12000);
+    const timer = setInterval(() => refreshRef.current(true), 12000);
     return () => clearInterval(timer);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshRef.current(true);
+    }, []),
+  );
+
+  useEffect(() => {
+    if (!locationResolved || locationAllowed || fallbackPositioned.current || !spaces.length) return;
+    const target =
+      spaces.find(
+        (space) => space.ownerId === auth.user?.id && space.latitude != null && space.longitude != null,
+      ) ?? spaces.find((space) => space.latitude != null && space.longitude != null);
+    if (!target) return;
+    fallbackPositioned.current = true;
+    const next: Region = {
+      latitude: target.latitude!,
+      longitude: target.longitude!,
+      latitudeDelta: 0.25,
+      longitudeDelta: 0.25,
+    };
+    setRegion(next);
+    setSearchRegion(next);
+    map.current?.animateToRegion(next, 500);
+  }, [auth.user?.id, locationAllowed, locationResolved, spaces]);
 
   useEffect(() => {
     if (!auth.token) {

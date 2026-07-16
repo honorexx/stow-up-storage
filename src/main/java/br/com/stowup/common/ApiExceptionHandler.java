@@ -15,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -103,6 +104,16 @@ public class ApiExceptionHandler {
   ResponseEntity<Map<String, Object>> resourceNotFound(NoResourceFoundException exception) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(body(HttpStatus.NOT_FOUND, "Recurso não encontrado.", null));
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  ResponseEntity<Map<String, Object>> uploadTooLarge(MaxUploadSizeExceededException exception) {
+    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+        .body(
+            body(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "A foto excede o limite de 10 MB. Escolha uma imagem menor.",
+                null));
   }
 
   @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
