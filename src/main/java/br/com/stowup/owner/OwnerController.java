@@ -126,10 +126,8 @@ public class OwnerController {
             .toList();
     List<ActiveRental> active =
         ownerBookings.stream()
-            .filter(
-                b ->
-                    b.getStatus() == BookingStatus.CONFIRMED
-                        && !b.getStartDate().isAfter(LocalDate.now()))
+            .filter(b -> b.getStatus() == BookingStatus.CONFIRMED)
+            .sorted(java.util.Comparator.comparing(Booking::getStartDate))
             .map(ActiveRental::from)
             .toList();
     return new OwnerDashboard(
@@ -457,17 +455,29 @@ public class OwnerController {
 
   public record ActiveRental(
       String bookingId,
+      Long spaceId,
       String spaceTitle,
       String customer,
+      String customerEmail,
+      String customerPhone,
+      String customerPhotoUrl,
+      LocalDate start,
       LocalDate end,
+      BigDecimal total,
       boolean customerConfirmed,
       boolean ownerConfirmed) {
     static ActiveRental from(Booking b) {
       return new ActiveRental(
           b.getId(),
+          b.getSpace().getId(),
           b.getSpace().getTitle(),
           b.getCustomer().getName(),
+          b.getCustomer().getEmail(),
+          b.getCustomer().getPhone(),
+          b.getCustomer().getPhotoUrl(),
+          b.getStartDate(),
           b.getEndDate(),
+          b.getTotal(),
           b.getCustomerCheckoutAt() != null,
           b.getOwnerCheckoutAt() != null);
     }

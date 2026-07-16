@@ -23,6 +23,13 @@ public class PaymentController {
     return payments.createCheckout(request.bookingId(), principal.getName());
   }
 
+  @PostMapping("/reconcile")
+  public PaymentStatusResponse reconcile(
+      @Valid @RequestBody CheckoutRequest request, Principal principal) {
+    return new PaymentStatusResponse(
+        request.bookingId(), payments.reconcile(request.bookingId(), principal.getName()));
+  }
+
   @PostMapping("/webhooks/mercado-pago")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void webhook(
@@ -34,6 +41,8 @@ public class PaymentController {
   }
 
   public record CheckoutRequest(@NotBlank String bookingId) {}
+
+  public record PaymentStatusResponse(String bookingId, boolean approved) {}
 
   public record WebhookBody(String type, WebhookData data) {}
 

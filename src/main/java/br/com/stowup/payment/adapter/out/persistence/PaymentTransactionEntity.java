@@ -49,6 +49,30 @@ class PaymentTransactionEntity {
     return bookingId;
   }
 
+  String getId() {
+    return id;
+  }
+
+  String getProviderPreferenceId() {
+    return providerPreferenceId;
+  }
+
+  String getProviderPaymentId() {
+    return providerPaymentId;
+  }
+
+  String getStatus() {
+    return status;
+  }
+
+  Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  Instant getUpdatedAt() {
+    return updatedAt;
+  }
+
   CheckoutSession checkout() {
     return new CheckoutSession(providerPreferenceId, checkoutUrl);
   }

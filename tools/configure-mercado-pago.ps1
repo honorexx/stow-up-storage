@@ -24,6 +24,7 @@ try {
 
 Set-Content -LiteralPath (Join-Path $runtime 'mercado-pago-public-key.txt') -Value $publicKey.Trim() -Encoding utf8
 $accessToken | ConvertFrom-SecureString | Set-Content -LiteralPath (Join-Path $runtime 'mercado-pago-access-token.dpapi') -Encoding utf8
+Set-Content -LiteralPath (Join-Path $runtime 'mercado-pago-test-mode.txt') -Value 'true' -Encoding ascii
 
 Write-Host 'Credenciais de teste salvas com proteção do Windows.' -ForegroundColor Green
 Write-Host 'Reiniciando o backend...'

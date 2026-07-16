@@ -4,12 +4,23 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  AppState,
+  Linking,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { RootStackParamList } from '../../app/navigation/types';
 import {
   contractPdfUrl,
   createPaymentCheckout,
   getRentalContract,
+  reconcilePayment,
   RentalContract,
   uploadSignedContract,
 } from '../../core/api/payments';
@@ -25,6 +36,24 @@ export function BookingDocumentsScreen({
   const booking = route.params.booking;
   const [contract, setContract] = useState<RentalContract | null>(null);
   const [busy, setBusy] = useState('');
+  async function refreshPayment(showResult = false) {
+    if (!token || contract?.status !== 'APPROVED' || contract.paymentApproved) return;
+    try {
+      const result = await reconcilePayment(token, booking.id);
+      const refreshed = await getRentalContract(token, booking.id);
+      setContract(refreshed);
+      if (showResult) {
+        Alert.alert(
+          result.approved ? 'Pagamento aprovado' : 'Pagamento ainda não identificado',
+          result.approved
+            ? 'A reserva foi confirmada e atualizada na StowUp.'
+            : 'Se você acabou de pagar, aguarde alguns segundos e tente verificar novamente.',
+        );
+      }
+    } catch (e: any) {
+      if (showResult) Alert.alert('Pagamento', e.message);
+    }
+  }
   useEffect(() => {
     if (!token) return;
     let mounted = true;
@@ -41,6 +70,12 @@ export function BookingDocumentsScreen({
       clearInterval(timer);
     };
   }, [token, booking.id]);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshPayment();
+    });
+    return () => subscription.remove();
+  }, [token, booking.id, contract?.status, contract?.paymentApproved]);
   async function pay() {
     if (!token) return;
     if (contract?.status !== 'APPROVED') {
@@ -50,10 +85,11 @@ export function BookingDocumentsScreen({
     setBusy('pay');
     try {
       const checkout = await createPaymentCheckout(token, booking.id);
-      await WebBrowser.openBrowserAsync(checkout.checkoutUrl, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-      });
-      setContract(await getRentalContract(token, booking.id));
+      const canOpenCheckout = await Linking.canOpenURL(checkout.checkoutUrl);
+      if (!canOpenCheckout) {
+        throw new Error('Não foi possível abrir o checkout do Mercado Pago.');
+      }
+      await Linking.openURL(checkout.checkoutUrl);
     } catch (e: any) {
       Alert.alert('Pagamento', e.message);
     } finally {
@@ -187,7 +223,14 @@ export function BookingDocumentsScreen({
           title="Faça o pagamento"
           text="O pagamento é liberado somente depois que o contrato assinado for aprovado. O Mercado Pago protege os dados do seu cartão."
         >
-          <PrimaryButton label={paymentLabel} onPress={pay} loading={busy === 'pay'} disabled={!canPay} />
+        <PrimaryButton label={paymentLabel} onPress={pay} loading={busy === 'pay'} disabled={!canPay} />
+        {canPay ? (
+          <PrimaryButton
+            label="Já paguei — verificar pagamento"
+            onPress={() => refreshPayment(true)}
+            secondary
+          />
+        ) : null}
         </Step>
         <Text style={styles.legal}>
           Fluxo da reserva: assinatura do locatário, validação do contrato e, por último, pagamento. A reserva

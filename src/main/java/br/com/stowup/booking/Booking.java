@@ -148,6 +148,12 @@ public class Booking {
     this.status = status;
   }
 
+  public void cancel() {
+    if (status != BookingStatus.PENDING)
+      throw new IllegalStateException("Somente uma reserva pendente pode ser cancelada.");
+    status = BookingStatus.CANCELLED;
+  }
+
   public boolean confirmCheckout(boolean customer, LocalDate confirmationDate) {
     if (customer) customerCheckoutAt = Instant.now();
     else ownerCheckoutAt = Instant.now();

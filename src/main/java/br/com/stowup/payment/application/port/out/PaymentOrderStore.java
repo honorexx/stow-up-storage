@@ -6,6 +6,8 @@ import java.util.Optional;
 public interface PaymentOrderStore {
   PaymentOrder requireOwnedBooking(String bookingId, String customerEmail);
 
+  void requireOwnership(String bookingId, String customerEmail);
+
   Optional<CheckoutSession> findReusableCheckout(String bookingId);
 
   void recordCheckout(String bookingId, CheckoutSession checkout);

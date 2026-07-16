@@ -45,6 +45,16 @@ public final class HttpStaffGateway implements StaffGateway {
   }
 
   @Override
+  public List<StaffPayment> payments(StaffSession session) {
+    return read(request("/admin/payments", session, "GET", null), new TypeReference<>() {});
+  }
+
+  @Override
+  public byte[] paymentReceipt(StaffSession session, String id) {
+    return requestBytes("/admin/payments/" + id + "/receipt", session);
+  }
+
+  @Override
   public List<AppUser> appUsers(StaffSession session) {
     return read(request("/admin/users", session, "GET", null), new TypeReference<>() {});
   }

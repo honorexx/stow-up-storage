@@ -130,6 +130,10 @@ export function ProfileScreen({ navigation }: BottomTabScreenProps<MainTabParamL
           />
         </View>
         <View style={styles.buttons}>
+          <PrimaryButton
+            label="Minhas reservas como cliente"
+            onPress={() => root?.navigate('Main', { screen: 'Reservas' })}
+          />
           <PrimaryButton label="Editar perfil" onPress={() => root?.navigate('EditProfile')} />
           <PrimaryButton
             secondary
@@ -141,7 +145,7 @@ export function ProfileScreen({ navigation }: BottomTabScreenProps<MainTabParamL
           {auth.user.role === 'OWNER' && (
             <PrimaryButton
               secondary
-              label="Painel do proprietário"
+              label="Painel e locações dos meus espaços"
               onPress={() => root?.navigate('OwnerDashboard')}
             />
           )}

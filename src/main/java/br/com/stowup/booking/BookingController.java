@@ -98,9 +98,6 @@ public class BookingController {
             .orElse(null);
     if (reusable != null) return BookingView.from(reusable);
     LocalDate end = request.start().plusMonths(request.months());
-    if (bookings.hasConflict(space.getId(), request.start(), end))
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT, "Este espaço já possui uma reserva no período escolhido.");
 
     BigDecimal subtotal = space.getPrice().multiply(BigDecimal.valueOf(request.months()));
     BigDecimal fee = subtotal.multiply(new BigDecimal("0.08")).setScale(2, RoundingMode.HALF_UP);
@@ -216,7 +213,7 @@ public class BookingController {
     } else if (customer) {
       notifications.send(
           b.getSpace().getOwner(),
-          "CHECKOUT_CONFIRMATION",
+          "OWNER_CHECKOUT_REQUIRED",
           "Confirme a retirada",
           b.getCustomer().getName() + " informou a retirada antecipada. Confirme o encerramento.",
           "BOOKING",
@@ -224,7 +221,7 @@ public class BookingController {
     } else {
       notifications.send(
           b.getCustomer(),
-          "CHECKOUT_CONFIRMATION",
+          "CUSTOMER_CHECKOUT_REQUIRED",
           "Confirme o encerramento",
           "O proprietário confirmou a retirada. Confirme o check-out no aplicativo.",
           "BOOKING",
@@ -237,6 +234,38 @@ public class BookingController {
         id,
         completed ? "Locação concluída" : "Aguardando a outra parte");
     return BookingView.from(b);
+  }
+
+  @PostMapping("/{id}/cancel")
+  @Transactional
+  public BookingView cancel(@PathVariable String id, Principal principal) {
+    Booking booking =
+        bookings
+            .findByIdForUpdate(id)
+            .filter(item -> item.getCustomer().getEmail().equalsIgnoreCase(principal.getName()))
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada."));
+    if (booking.getStatus() != BookingStatus.PENDING)
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Somente uma reserva pendente pode ser cancelada.");
+    booking.cancel();
+    notifications.send(
+        booking.getSpace().getOwner(),
+        "BOOKING_CANCELLED",
+        "Solicitação cancelada",
+        booking.getCustomer().getName()
+            + " cancelou a solicitação para "
+            + booking.getSpace().getTitle()
+            + ".",
+        "BOOKING",
+        booking.getId());
+    audit.record(
+        principal.getName(),
+        "BOOKING_CANCELLED",
+        "BOOKING",
+        booking.getId(),
+        "Cancelada pelo cliente");
+    return BookingView.from(booking);
   }
 
   public record CreateBookingRequest(
@@ -273,9 +302,7 @@ public class BookingController {
               ? "COMPLETED"
               : booking.getStatus() == BookingStatus.CANCELLED
                   ? "CANCELLED"
-                  : booking.getStatus() == BookingStatus.CONFIRMED
-                      ? (booking.getStartDate().isAfter(LocalDate.now()) ? "FUTURE" : "ACTIVE")
-                      : "PENDING";
+                  : booking.getStatus() == BookingStatus.CONFIRMED ? "ACTIVE" : "PENDING";
       boolean reviewAvailable =
           booking.getStatus() == BookingStatus.COMPLETED
               && booking.getCompletedAt() != null
