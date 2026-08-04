@@ -9,7 +9,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>21.0.8</javafx.version>
-        <jackson.version>2.17.2</jackson.version>
+        <jackson.version>2.22.1</jackson.version>
     </properties>
     <dependencies>
         <dependency><groupId>org.openjfx</groupId><artifactId>javafx-controls</artifactId><version>${javafx.version}</version></dependency>
