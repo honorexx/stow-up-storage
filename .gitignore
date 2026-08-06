@@ -5,6 +5,7 @@ staff-desktop/node_modules/
 staff-desktop/dist/
 staff-desktop/dist-electron/
 staff-desktop/release/
+.pnpm-store/
 data/
 .runtime/
 postgres-data/

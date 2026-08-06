@@ -1,0 +1,66 @@
+{
+  "name": "stowup-hq",
+  "description": "Central Interna da StowUp — app desktop (Windows e Mac) para a equipe.",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "build:web": "tsc --noEmit && vite build",
+    "build": "pnpm run build:web && electron-builder",
+    "build:mac": "pnpm run build:web && electron-builder --mac",
+    "build:win": "pnpm run build:web && electron-builder --win",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"electron/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"electron/**/*.js\""
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "@types/react-dom": "~19.1.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^9.1.2",
+    "electron": "^33.4.5",
+    "electron-builder": "^25.1.8",
+    "prettier": "3.6.2",
+    "typescript": "~5.9.2",
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "br.com.stowup.hq",
+    "productName": "StowUp HQ",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.business"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}
