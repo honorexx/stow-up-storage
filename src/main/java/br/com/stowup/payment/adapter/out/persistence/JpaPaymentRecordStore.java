@@ -15,8 +15,7 @@ class JpaPaymentRecordStore implements PaymentRecordStore {
   private final PaymentTransactionRepository transactions;
   private final BookingRepository bookings;
 
-  JpaPaymentRecordStore(
-      PaymentTransactionRepository transactions, BookingRepository bookings) {
+  JpaPaymentRecordStore(PaymentTransactionRepository transactions, BookingRepository bookings) {
     this.transactions = transactions;
     this.bookings = bookings;
   }

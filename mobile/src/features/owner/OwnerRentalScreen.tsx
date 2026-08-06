@@ -13,11 +13,7 @@ import {
 } from 'react-native';
 import { RootStackParamList } from '../../app/navigation/types';
 import { API_ORIGIN } from '../../core/api/auth';
-import {
-  checkoutBooking,
-  getOwnerDashboard,
-  OwnerDashboard,
-} from '../../core/api/marketplace';
+import { checkoutBooking, getOwnerDashboard, OwnerDashboard } from '../../core/api/marketplace';
 import { colors } from '../../shared/theme';
 import { useAuth } from '../auth/AuthContext';
 
@@ -41,16 +37,12 @@ export function OwnerRentalScreen({
     }
     try {
       const dashboard = await getOwnerDashboard(token);
-      const current = dashboard.activeRentals.find(
-        (item) => item.bookingId === route.params.bookingId,
-      );
+      const current = dashboard.activeRentals.find((item) => item.bookingId === route.params.bookingId);
       setRental(current ?? null);
       setError(current ? '' : 'Esta locação não está mais ativa.');
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Não foi possível atualizar a locação.',
+        requestError instanceof Error ? requestError.message : 'Não foi possível atualizar a locação.',
       );
     } finally {
       setLoading(false);
@@ -89,10 +81,7 @@ export function OwnerRentalScreen({
           [{ text: 'OK', onPress: () => navigation.goBack() }],
         );
       } else {
-        Alert.alert(
-          'Confirmação registrada',
-          'Agora falta o cliente confirmar a retirada no aplicativo.',
-        );
+        Alert.alert('Confirmação registrada', 'Agora falta o cliente confirmar a retirada no aplicativo.');
         await refresh();
       }
     } catch (requestError) {

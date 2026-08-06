@@ -1,5 +1,6 @@
 import { API_URL } from './config';
 import { authorized } from './client';
+import { appendMultipartFile } from './multipart';
 
 export type Booking = {
   id: string;
@@ -253,11 +254,11 @@ export async function uploadSupportAttachment(
   file: { uri: string; name: string; mimeType?: string | null },
 ) {
   const form = new FormData();
-  form.append('file', {
+  await appendMultipartFile(form, 'file', {
     uri: file.uri,
     name: file.name,
     type: file.mimeType || 'application/octet-stream',
-  } as any);
+  });
   const response = await fetch(`${API_URL}/support/tickets/${id}/attachments`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
@@ -288,6 +289,8 @@ export const setSpaceAvailability = (token: string, id: number, available: boole
   });
 export const createSpace = (token: string, input: CreateSpaceInput) =>
   authorized<OwnerSpace>('/owner/spaces', token, { method: 'POST', body: JSON.stringify(input) });
+export const updateOwnedSpace = (token: string, id: number, input: CreateSpaceInput) =>
+  authorized<OwnerSpace>(`/owner/spaces/${id}`, token, { method: 'PATCH', body: JSON.stringify(input) });
 export const listFavorites = (token: string) => authorized<Space[]>('/favorites', token);
 export const favoriteStatus = (token: string, spaceId: number) =>
   authorized<{ favorite: boolean }>(`/favorites/${spaceId}`, token);
@@ -327,7 +330,11 @@ export async function uploadSpaceDocument(
   visibility = 'ADMIN_ONLY',
 ) {
   const form = new FormData();
-  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'application/pdf' } as any);
+  await appendMultipartFile(form, 'file', {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType || 'application/pdf',
+  });
   const response = await fetch(
     `${API_URL}/owner/spaces/${spaceId}/documents?type=${encodeURIComponent(type)}&visibility=${encodeURIComponent(visibility)}`,
     { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
@@ -345,7 +352,11 @@ export async function uploadSignedListingDocument(
   file: { uri: string; name: string; mimeType?: string | null },
 ): Promise<ListingDocument> {
   const form = new FormData();
-  form.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'application/pdf' } as any);
+  await appendMultipartFile(form, 'file', {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType || 'application/pdf',
+  });
   const response = await fetch(`${API_URL}/owner/spaces/${spaceId}/document/signed`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
@@ -375,7 +386,11 @@ export async function uploadSpacePhoto(
         : extension === 'heic' || extension === 'heif'
           ? 'image/heic'
           : 'image/jpeg');
-  form.append('file', { uri: image.uri, name: image.fileName || `space.${extension}`, type } as any);
+  await appendMultipartFile(form, 'file', {
+    uri: image.uri,
+    name: image.fileName || `space.${extension}`,
+    type,
+  });
   const response = await fetch(`${API_URL}/owner/spaces/${spaceId}/photos`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },

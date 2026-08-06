@@ -3,7 +3,7 @@
     "name": "StowUp",
     "slug": "stowup",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/stowup-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -27,7 +27,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/stowup-icon.png"
     },
     "plugins": [
       "expo-secure-store"

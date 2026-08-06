@@ -1,6 +1,6 @@
 # StowUp
 
-Marketplace de espaços para armazenamento com aplicativo Expo para iOS/Android, API Spring Boot, PostgreSQL, aplicação web complementar e central administrativa JavaFX. Os módulos principais seguem arquitetura hexagonal, separando domínio, casos de uso, portas e adaptadores.
+Marketplace de espaços para armazenamento com aplicativo Expo responsivo para iOS, Android e web/desktop, API Spring Boot e PostgreSQL. A Central Administrativa é uma aplicação web interna separada do app/site público, com login próprio em `/staff` e APIs protegidas por função. Os módulos principais seguem arquitetura hexagonal, separando domínio, casos de uso, portas e adaptadores.
 
 ## Clonar e executar no Windows
 
@@ -14,7 +14,7 @@ cd StowUp
 Depois, execute com duplo clique:
 
 1. `INSTALAR.bat` — prepara ferramentas, banco, dependências, IP local e compila os projetos.
-2. `INICIAR.bat` — inicia PostgreSQL, Spring Boot, Expo e JavaFX.
+2. `INICIAR.bat` — inicia PostgreSQL, Spring Boot e Expo. O app público não exibe atalhos administrativos; a equipe acessa a central diretamente em `http://localhost:8080/staff`.
 3. `PARAR.bat` — encerra o ambiente local.
 
 O primeiro processo pode demorar porque baixa as ferramentas e dependências. Tudo que é específico da máquina fica em `.runtime/`, `postgres-data/`, `target/`, `mobile/node_modules/` e `mobile/.env.local`; essas pastas não entram no Git.
@@ -32,17 +32,16 @@ Execute apenas uma instalação local do StowUp por vez. Se outra cópia já est
 ## Abrir pelo IntelliJ
 
 - Abra a pasta raiz para editar e executar o Spring Boot.
-- O módulo JavaFX está em `staff-desktop/` e pode ser importado pelo `pom.xml` próprio.
-- As configurações compartilhadas ficam em `.run/`.
+- A aplicação pública está em `mobile/`; a Central Administrativa independente está em `src/main/resources/static/staff/`.
+- As configurações compartilhadas ficam em `.run/`: `StowUp — API + Site`, `StowUp — App Mobile`, `StowUp — App Web` e `StowUp — Tudo (Web)`.
 - Para o fluxo reproduzível usado por todos os colaboradores, prefira `INSTALAR.bat` e `INICIAR.bat`.
 
 ## Estrutura
 
 ```text
 StowUp/
-├── mobile/          React Native + Expo SDK 54
+├── mobile/          React Native + Expo SDK 54 (iOS, Android e web público)
 ├── src/             API Spring Boot e aplicação web
-├── staff-desktop/   Central JavaFX de suporte e administração
 ├── docs/            API, arquitetura, contratos e operação
 ├── tools/           Bootstrap, banco e comandos de execução
 ├── INSTALAR.bat
@@ -97,7 +96,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\configure-mercado-pago.ps1
 - painel e relatórios do proprietário;
 - notificações, avaliações pós-locação e conversas privadas;
 - chamados de suporte com histórico e chat;
-- central JavaFX com usuários internos por função, anúncios, documentos, contratos e auditoria.
+- central administrativa interna separada, login próprio e autorização de APIs por função.
 
 ## Testes
 
@@ -114,12 +113,6 @@ cd mobile
 ..\tools\pnpm.cmd install --frozen-lockfile
 ..\tools\pnpm.cmd exec tsc --noEmit
 ..\tools\pnpm.cmd run format:check
-```
-
-JavaFX:
-
-```powershell
-.\tools\mvn.cmd -f staff-desktop/pom.xml spotless:check test
 ```
 
 O GitHub Actions executa essas verificações automaticamente em cada push e pull request.

@@ -10,9 +10,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import { Marker, PlatformMap, PlatformMapHandle, Region } from '../../shared/components/PlatformMap';
 import { useFocusEffect } from '@react-navigation/native';
 import { listNotifications, listSpaces, Space } from '../../core/api/marketplace';
 import { BrandMark } from '../../shared/components/BrandMark';
@@ -42,9 +43,11 @@ const featureOptions = [
 ];
 
 export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamList, 'Explorar'>) {
+  const { width } = useWindowDimensions();
+  const desktop = width >= 960;
   const root = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const auth = useAuth();
-  const map = useRef<MapView>(null);
+  const map = useRef<PlatformMapHandle>(null);
   const fallbackPositioned = useRef(false);
   const [region, setRegion] = useState(SAO_PAULO);
   const [searchRegion, setSearchRegion] = useState<Region | null>(null);
@@ -224,7 +227,7 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+      <View style={[styles.header, desktop && styles.headerDesktop]}>
         <BrandMark compact />
         <Text style={styles.brand}>
           Stow<Text style={styles.up}>Up</Text>
@@ -262,7 +265,7 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
           )}
         </Pressable>
       </View>
-      <View style={styles.search}>
+      <View style={[styles.search, desktop && styles.searchDesktop]}>
         <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
           value={query}
@@ -392,7 +395,7 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
         </View>
       ) : mode === 'map' ? (
         <View style={styles.mapWrap}>
-          <MapView
+          <PlatformMap
             ref={map}
             style={StyleSheet.absoluteFill}
             initialRegion={region}
@@ -422,7 +425,7 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
                   </Marker>
                 );
               })}
-          </MapView>
+          </PlatformMap>
           <Pressable
             onPress={() => {
               setSearchRegion({ ...region });
@@ -460,9 +463,12 @@ export function ExploreScreen({ navigation }: BottomTabScreenProps<MainTabParamL
         </View>
       ) : (
         <FlatList
+          key={desktop ? 'desktop-grid' : 'mobile-list'}
+          numColumns={desktop ? 3 : 1}
           data={filtered}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
+          columnWrapperStyle={desktop ? styles.listRow : undefined}
           renderItem={({ item }) => (
             <SpaceCard item={item} onPress={() => root?.navigate('SpaceDetail', { spaceId: item.id })} />
           )}
@@ -562,6 +568,7 @@ function Filter({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
   header: { height: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 9 },
+  headerDesktop: { height: 68, paddingHorizontal: 28, borderBottomWidth: 1, borderBottomColor: colors.line },
   brand: { flex: 1, color: colors.navy, fontSize: 23, fontWeight: '800', letterSpacing: -0.7 },
   up: { color: colors.orange },
   notificationButton: {
@@ -612,6 +619,7 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     ...shadow,
   },
+  searchDesktop: { marginHorizontal: 28, marginTop: 14, maxWidth: 920, alignSelf: 'center', width: '95%' },
   searchIcon: { color: colors.navy, fontSize: 26 },
   searchInput: { flex: 1, paddingHorizontal: 10, color: colors.text, fontSize: 15 },
   filter: {
@@ -715,16 +723,18 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28 },
   loadingText: { color: colors.muted, marginTop: 10 },
   clear: { color: colors.orange, fontWeight: '800', padding: 16 },
-  list: { padding: 16, gap: 14 },
+  list: { padding: 18, gap: 14 },
+  listRow: { gap: 16 },
   emptyList: { flexGrow: 1 },
   card: {
+    flex: 1,
     borderRadius: 18,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: colors.line,
     overflow: 'hidden',
   },
-  cardCompact: { width: 285, flexDirection: 'row', ...shadow },
+  cardCompact: { flex: 0, width: 285, flexDirection: 'row', ...shadow },
   cardImage: {
     height: 130,
     minWidth: 95,

@@ -1,6 +1,7 @@
 package br.com.stowup.user;
 
 import br.com.stowup.account.application.AccountService;
+import br.com.stowup.account.application.InvalidCredentialsException;
 import br.com.stowup.account.application.PasswordRecoveryService;
 import br.com.stowup.account.domain.Account;
 import br.com.stowup.account.domain.AccountRole;
@@ -52,6 +53,17 @@ public class AuthController {
   @PostMapping("/login")
   public AuthResponse login(@Valid @RequestBody LoginRequest request) {
     return AuthResponse.from(accounts.authenticate(request.email(), request.password()));
+  }
+
+  @PostMapping("/staff-login")
+  public AuthResponse staffLogin(@Valid @RequestBody LoginRequest request) {
+    AccountService.Session session = accounts.authenticate(request.email(), request.password());
+    if (isPublicRole(session.account().role())) throw new InvalidCredentialsException();
+    return AuthResponse.from(session);
+  }
+
+  private static boolean isPublicRole(AccountRole role) {
+    return role == AccountRole.CUSTOMER || role == AccountRole.OWNER;
   }
 
   @PostMapping("/password-recovery/request")

@@ -4,6 +4,7 @@ import br.com.stowup.audit.AuditService;
 import br.com.stowup.booking.*;
 import br.com.stowup.contract.application.port.out.ContractDocumentGenerator;
 import br.com.stowup.contract.domain.ContractData;
+import br.com.stowup.notification.DocumentEmailService;
 import br.com.stowup.notification.NotificationService;
 import br.com.stowup.payment.application.port.out.ContractPaymentPolicy;
 import br.com.stowup.space.Space;
@@ -28,6 +29,7 @@ public class ContractService implements ContractPaymentPolicy {
   private final Path contractRoot;
   private final NotificationService notifications;
   private final AuditService audit;
+  private final DocumentEmailService documentEmails;
 
   public ContractService(
       RentalContractRepository contracts,
@@ -36,6 +38,7 @@ public class ContractService implements ContractPaymentPolicy {
       UserRepository users,
       ContractDocumentGenerator documents,
       NotificationService notifications,
+      DocumentEmailService documentEmails,
       AuditService audit,
       @Value("${stowup.uploads.directory}") String uploadDirectory) {
     this.contracts = contracts;
@@ -44,6 +47,7 @@ public class ContractService implements ContractPaymentPolicy {
     this.users = users;
     this.documents = documents;
     this.notifications = notifications;
+    this.documentEmails = documentEmails;
     this.audit = audit;
     this.contractRoot = Path.of(uploadDirectory).toAbsolutePath().normalize().resolve("contracts");
   }
@@ -63,7 +67,16 @@ public class ContractService implements ContractPaymentPolicy {
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva não encontrada."));
     Path path = generateDocument(booking);
-    return contracts.save(new RentalContract(booking, path.toString()));
+    RentalContract contract = contracts.save(new RentalContract(booking, path.toString()));
+    documentEmails.sendPdf(
+        booking.getCustomer().getEmail(),
+        "Contrato da sua reserva StowUp",
+        "Olá, "
+            + booking.getCustomer().getName()
+            + ".\n\nSeu contrato está anexado. Confira os dados, assine pelo gov.br e envie o PDF assinado pelo aplicativo StowUp.",
+        path,
+        booking.getContractCode() + ".pdf");
+    return contract;
   }
 
   @Transactional
@@ -187,7 +200,10 @@ public class ContractService implements ContractPaymentPolicy {
           HttpStatus.CONFLICT, "A reserva não está aguardando pagamento.");
     }
     if (bookings.hasConfirmedConflictExcluding(
-        booking.getId(), booking.getSpace().getId(), booking.getStartDate(), booking.getEndDate())) {
+        booking.getId(),
+        booking.getSpace().getId(),
+        booking.getStartDate(),
+        booking.getEndDate())) {
       booking.cancel();
       notifications.send(
           booking.getCustomer(),
@@ -208,7 +224,10 @@ public class ContractService implements ContractPaymentPolicy {
     booking.getSpace().occupy(booking.getReservedCapacity());
     for (Booking pending :
         bookings.findOverlappingPending(
-            booking.getId(), booking.getSpace().getId(), booking.getStartDate(), booking.getEndDate())) {
+            booking.getId(),
+            booking.getSpace().getId(),
+            booking.getStartDate(),
+            booking.getEndDate())) {
       pending.cancel();
       notifications.send(
           pending.getCustomer(),

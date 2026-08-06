@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="StowUp — Tudo (Web)" type="CompoundRunConfigurationType" factoryName="Compound">
+    <toRun name="StowUp — API + Site" type="SpringBootApplicationConfigurationType" />
+    <toRun name="StowUp — App Web" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>

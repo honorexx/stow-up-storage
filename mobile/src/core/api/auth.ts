@@ -1,4 +1,5 @@
 import { API_ORIGIN, API_URL } from './config';
+import { appendMultipartFile } from './multipart';
 export { API_ORIGIN } from './config';
 
 export type User = {
@@ -15,7 +16,15 @@ export type User = {
   city?: string | null;
   state?: string | null;
   photoUrl?: string | null;
-  role: 'CUSTOMER' | 'OWNER' | 'SUPPORT' | 'MODERATOR' | 'ADMIN';
+  role:
+    | 'CUSTOMER'
+    | 'OWNER'
+    | 'SUPPORT'
+    | 'MODERATOR'
+    | 'LISTING_ANALYST'
+    | 'DOCUMENT_ANALYST'
+    | 'CONTRACT_ANALYST'
+    | 'ADMIN';
 };
 export type AuthResponse = { token: string; user: User };
 export type RegistrationInput = {
@@ -137,7 +146,11 @@ export async function uploadAvatar(token: string, image: UploadImage): Promise<U
         : extension === 'heic' || extension === 'heif'
           ? 'image/heic'
           : 'image/jpeg');
-  form.append('file', { uri: image.uri, name: image.fileName || `profile.${extension}`, type } as any);
+  await appendMultipartFile(form, 'file', {
+    uri: image.uri,
+    name: image.fileName || `profile.${extension}`,
+    type,
+  });
   const response = await fetch(`${API_URL}/profile/avatar`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },

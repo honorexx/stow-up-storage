@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../../core/storage/secureStorage';
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import {
   authenticate,

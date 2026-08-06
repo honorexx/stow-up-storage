@@ -1,5 +1,6 @@
 import { authorized } from './client';
 import { API_URL } from './config';
+import { appendMultipartFile } from './multipart';
 
 export type RentalContract = {
   id: string;
@@ -36,11 +37,11 @@ export async function uploadSignedContract(
   file: { uri: string; name: string; mimeType?: string | null },
 ): Promise<RentalContract> {
   const form = new FormData();
-  form.append('file', {
+  await appendMultipartFile(form, 'file', {
     uri: file.uri,
     name: file.name,
     type: file.mimeType || 'application/pdf',
-  } as any);
+  });
   const response = await fetch(`${API_URL}/contracts/${bookingId}/signed`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },

@@ -9,7 +9,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   DeleteAccount: undefined;
   MyListings: undefined;
-  CreateListing: undefined;
+  CreateListing: { space?: import('../../core/api/marketplace').OwnerSpace } | undefined;
   ListingDocument: { spaceId: number; title: string };
   SpaceDetail: { spaceId: number };
   Conversation: { conversationId: string; title: string; participantPhotoUrl?: string | null };

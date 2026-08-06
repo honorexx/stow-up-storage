@@ -508,6 +508,52 @@ public class Space {
     this.state = state.trim().toUpperCase();
   }
 
+  public void updateByOwner(
+      String title,
+      String city,
+      String district,
+      String postalCode,
+      String addressLine,
+      String addressNumber,
+      String addressComplement,
+      String state,
+      String type,
+      int size,
+      BigDecimal price,
+      Double latitude,
+      Double longitude,
+      String description,
+      List<String> features,
+      BigDecimal height,
+      BigDecimal length,
+      BigDecimal depth) {
+    this.title = title.trim();
+    this.city = city.trim();
+    this.district = district.trim();
+    this.postalCode = postalCode.replaceAll("\\D", "");
+    this.addressLine = addressLine.trim();
+    this.addressNumber = addressNumber.trim();
+    this.addressComplement =
+        addressComplement == null || addressComplement.isBlank() ? null : addressComplement.trim();
+    this.state = state.trim().toUpperCase();
+    this.type = type.trim();
+    this.size = size;
+    this.capacityTotal = Math.max(size, capacityUsed);
+    this.price = price;
+    this.latitude = latitude;
+    this.longitude = longitude;
+    this.description = description.trim();
+    this.featuresCsv = String.join("|", features);
+    setDimensions(height, length, depth);
+    this.verified = false;
+    this.available = false;
+    this.moderationStatus = "PENDING";
+    this.moderationReason = null;
+    this.moderatedBy = null;
+    this.moderatedAt = null;
+    this.lifecycleStatus = "IN_REVIEW";
+  }
+
   public void withdrawByAdmin(String reason) {
     available = false;
     verified = false;

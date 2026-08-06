@@ -135,7 +135,7 @@ function mobileNav() {
 }
 
 function footer() {
-  return `<footer class="footer"><div class="container footer-inner">${logo()}<div>Espaço para o que importa.</div><div class="footer-links"><button data-action="navigate" data-view="admin">Administração</button><button data-action="toast" data-message="Central de ajuda em breve">Ajuda</button><button data-action="toast" data-message="Política de privacidade aberta">Privacidade</button></div></div></footer>`;
+  return `<footer class="footer"><div class="container footer-inner">${logo()}<div>Espaço para o que importa.</div><div class="footer-links"><button data-action="toast" data-message="Central de ajuda em breve">Ajuda</button><button data-action="toast" data-message="Política de privacidade aberta">Privacidade</button></div></div></footer>`;
 }
 
 function homeView() {
@@ -251,20 +251,12 @@ function ownerView() {
   </div></main>`;
 }
 
-function adminView() {
-  if (state.user?.role !== "ADMIN") return `<main class="page"><div class="container">${emptyState("Acesso administrativo", "Esta área é exclusiva para administradores autorizados.")}</div></main>`;
-  return `<main class="page"><div class="container"><div class="eyebrow">Operação StowUp</div><h1 class="page-title">Painel administrativo</h1><p class="page-subtitle">Moderação, segurança e qualidade da plataforma.</p>
-    <div class="stats"><div class="stat"><span>Usuários ativos</span><strong>1.284</strong><small>↑ 8%</small></div><div class="stat"><span>Espaços publicados</span><strong>346</strong></div><div class="stat"><span>Reservas no mês</span><strong>218</strong></div><div class="stat"><span>GMV mensal</span><strong>R$ 184k</strong></div></div>
-    <div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Proprietários aguardando análise</h2><span class="status pending">3 pendentes</span></div>${[["JF","João Ferreira","CPF e comprovante enviados"],["MB","Maria Braga","CNPJ e contrato social enviados"],["TR","Tiago Rocha","CPF e comprovante enviados"]].map(([a,n,d],i) => `<div class="review-item" id="review-${i}"><div class="avatar">${a}</div><div class="item-copy"><strong>${n}</strong><small>${d}</small></div><button class="secondary-btn" data-action="approve" data-target="review-${i}">Aprovar</button><button class="ghost-btn" data-action="toast" data-message="Documentos abertos para análise">Analisar</button></div>`).join("")}</section><section class="panel"><div class="panel-head"><h3>Saúde da operação</h3></div><div class="booking-item"><div class="badge-icon">✓</div><div class="item-copy"><strong>Pagamentos</strong><small>99,98% de disponibilidade</small></div><span class="status">Normal</span></div><div class="booking-item"><div class="badge-icon">✓</div><div class="item-copy"><strong>Reservas</strong><small>Sem conflitos detectados</small></div><span class="status">Normal</span></div><div class="booking-item"><div class="badge-icon">!</div><div class="item-copy"><strong>Denúncias</strong><small>4 aguardando análise</small></div><span class="status pending">Atenção</span></div></section></div>
-  </div></main>`;
-}
-
 function emptyState(title, text, actionLabel) {
   return `<div class="empty-state"><div class="empty-icon">⌂</div><h2>${title}</h2><p>${text}</p>${actionLabel ? `<button class="primary-btn" data-action="navigate" data-view="search">${actionLabel}</button>` : ""}</div>`;
 }
 
 function render() {
-  const views = { home: homeView, search: resultsView, results: resultsView, favorites: favoritesView, bookings: bookingsView, owner: ownerView, admin: adminView };
+  const views = { home: homeView, search: resultsView, results: resultsView, favorites: favoritesView, bookings: bookingsView, owner: ownerView };
   app.innerHTML = `<div class="shell">${header()}${(views[state.view] || homeView)()}${footer()}${mobileNav()}</div>`;
 }
 

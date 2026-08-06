@@ -158,80 +158,89 @@ export function MyListingsScreen({ navigation }: NativeStackScreenProps<RootStac
                 }
                 style={styles.card}
               >
-              {item.photos?.[0] ? (
-                <Image source={{ uri: `${API_ORIGIN}${item.photos[0]}` }} style={styles.photo} />
-              ) : (
-                <View style={styles.photoEmpty}>
-                  <Text style={{ fontSize: 30 }}>▱</Text>
-                </View>
-              )}
-              <View style={styles.info}>
-                <View style={styles.row}>
-                  <Text numberOfLines={1} style={styles.cardTitle}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.status, item.lifecycleStatus === 'ACTIVE' && styles.published]}>
-                    {spaceLifecycleLabel(item.lifecycleStatus)}
-                  </Text>
-                </View>
-                <Text style={styles.meta}>
-                  {item.type} · {item.size} m² · {item.district}, {item.city}
-                </Text>
-                <Text style={styles.meta}>
-                  {item.heightMeters} m altura × {item.lengthMeters} m comprimento × {item.depthMeters} m
-                  profundidade
-                </Text>
-                <Text style={styles.meta}>
-                  Volume: {Number(item.volumeCubicMeters).toFixed(2)} m³ · Fotos: {item.photos.length}/
-                  {item.minimumPhotos}
-                </Text>
-                {!item.photoRequirementMet && (
-                  <Text style={styles.warning}>
-                    Adicione pelo menos {item.minimumPhotos} fotos para permitir a aprovação.
-                  </Text>
+                {item.photos?.[0] ? (
+                  <Image source={{ uri: `${API_ORIGIN}${item.photos[0]}` }} style={styles.photo} />
+                ) : (
+                  <View style={styles.photoEmpty}>
+                    <Text style={{ fontSize: 30 }}>▱</Text>
+                  </View>
                 )}
-                <Text style={styles.price}>R$ {Number(item.price).toFixed(2).replace('.', ',')}/mês</Text>
-                <Text style={styles.address}>
-                  {item.addressLine}, {item.addressNumber}
-                </Text>
-                <Text style={occupied ? styles.rentalHint : styles.documentHint}>
-                  {occupied
-                    ? `Locado por ${rental.customer} · toque para acompanhar`
-                    : 'Toque para documentos e acompanhamento'}
-                </Text>
-                {occupied && (
-                  <Pressable
-                    style={styles.rentalButton}
-                    onPress={(event) => {
-                      event.stopPropagation();
-                      navigation.navigate('OwnerRental', { bookingId: rental.bookingId });
-                    }}
-                  >
-                    <Text style={styles.rentalButtonText}>Acompanhar locação</Text>
-                  </Pressable>
-                )}
-                <View style={styles.actions}>
-                  <Text
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      addPhoto(item);
-                    }}
-                    style={styles.photoAction}
-                  >
-                    Adicionar foto
+                <View style={styles.info}>
+                  <View style={styles.row}>
+                    <Text numberOfLines={1} style={styles.cardTitle}>
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.status, item.lifecycleStatus === 'ACTIVE' && styles.published]}>
+                      {spaceLifecycleLabel(item.lifecycleStatus)}
+                    </Text>
+                  </View>
+                  <Text style={styles.meta}>
+                    {item.type} · {item.size} m² · {item.district}, {item.city}
                   </Text>
-                  <Text
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setDeleting(item);
-                    }}
-                    style={styles.deleteAction}
-                  >
-                    Excluir anúncio
+                  <Text style={styles.meta}>
+                    {item.heightMeters} m altura × {item.lengthMeters} m comprimento × {item.depthMeters} m
+                    profundidade
                   </Text>
+                  <Text style={styles.meta}>
+                    Volume: {Number(item.volumeCubicMeters).toFixed(2)} m³ · Fotos: {item.photos.length}/
+                    {item.minimumPhotos}
+                  </Text>
+                  {!item.photoRequirementMet && (
+                    <Text style={styles.warning}>
+                      Adicione pelo menos {item.minimumPhotos} fotos para permitir a aprovação.
+                    </Text>
+                  )}
+                  <Text style={styles.price}>R$ {Number(item.price).toFixed(2).replace('.', ',')}/mês</Text>
+                  <Text style={styles.address}>
+                    {item.addressLine}, {item.addressNumber}
+                  </Text>
+                  <Text style={occupied ? styles.rentalHint : styles.documentHint}>
+                    {occupied
+                      ? `Locado por ${rental.customer} · toque para acompanhar`
+                      : 'Toque para documentos e acompanhamento'}
+                  </Text>
+                  {occupied && (
+                    <Pressable
+                      style={styles.rentalButton}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        navigation.navigate('OwnerRental', { bookingId: rental.bookingId });
+                      }}
+                    >
+                      <Text style={styles.rentalButtonText}>Acompanhar locação</Text>
+                    </Pressable>
+                  )}
+                  <View style={styles.actions}>
+                    <Text
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        navigation.navigate('CreateListing', { space: item });
+                      }}
+                      style={styles.editAction}
+                    >
+                      Editar
+                    </Text>
+                    <Text
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        addPhoto(item);
+                      }}
+                      style={styles.photoAction}
+                    >
+                      Adicionar foto
+                    </Text>
+                    <Text
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setDeleting(item);
+                      }}
+                      style={styles.deleteAction}
+                    >
+                      Excluir anúncio
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </Pressable>
+              </Pressable>
             );
           }}
         />
@@ -367,6 +376,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderWidth: 1,
     borderColor: colors.navy,
+    borderRadius: 11,
+  },
+  editAction: {
+    flex: 1,
+    color: colors.orange,
+    fontWeight: '900',
+    paddingVertical: 10,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.orange,
     borderRadius: 11,
   },
   deleteAction: {

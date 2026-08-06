@@ -1,7 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import {
@@ -27,6 +25,7 @@ import {
 import { PrimaryButton } from '../../shared/components/PrimaryButton';
 import { colors } from '../../shared/theme';
 import { useAuth } from '../auth/AuthContext';
+import { downloadAuthenticatedPdf } from '../../core/files/download';
 
 export function BookingDocumentsScreen({
   navigation,
@@ -100,21 +99,7 @@ export function BookingDocumentsScreen({
     if (!token) return;
     setBusy('download');
     try {
-      const destination = `${FileSystem.cacheDirectory}${booking.contract}.pdf`;
-      await FileSystem.deleteAsync(destination, { idempotent: true });
-      const result = await FileSystem.downloadAsync(contractPdfUrl(booking.id), destination, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (result.status < 200 || result.status >= 300) {
-        await FileSystem.deleteAsync(result.uri, { idempotent: true });
-        throw new Error('Não foi possível gerar o contrato em PDF. Tente novamente.');
-      }
-      if (await Sharing.isAvailableAsync())
-        await Sharing.shareAsync(result.uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Salvar ou enviar contrato StowUp',
-        });
-      else Alert.alert('Contrato salvo', result.uri);
+      await downloadAuthenticatedPdf(contractPdfUrl(booking.id), token, `${booking.contract}.pdf`);
     } catch (e: any) {
       Alert.alert('Contrato', e.message);
     } finally {
@@ -223,14 +208,14 @@ export function BookingDocumentsScreen({
           title="Faça o pagamento"
           text="O pagamento é liberado somente depois que o contrato assinado for aprovado. O Mercado Pago protege os dados do seu cartão."
         >
-        <PrimaryButton label={paymentLabel} onPress={pay} loading={busy === 'pay'} disabled={!canPay} />
-        {canPay ? (
-          <PrimaryButton
-            label="Já paguei — verificar pagamento"
-            onPress={() => refreshPayment(true)}
-            secondary
-          />
-        ) : null}
+          <PrimaryButton label={paymentLabel} onPress={pay} loading={busy === 'pay'} disabled={!canPay} />
+          {canPay ? (
+            <PrimaryButton
+              label="Já paguei — verificar pagamento"
+              onPress={() => refreshPayment(true)}
+              secondary
+            />
+          ) : null}
         </Step>
         <Text style={styles.legal}>
           Fluxo da reserva: assinatura do locatário, validação do contrato e, por último, pagamento. A reserva

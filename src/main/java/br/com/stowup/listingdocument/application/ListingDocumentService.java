@@ -5,6 +5,7 @@ import br.com.stowup.listingdocument.adapter.out.persistence.OwnerListingDocumen
 import br.com.stowup.listingdocument.application.port.out.ListingDocumentGenerator;
 import br.com.stowup.listingdocument.domain.ListingDocumentStatus;
 import br.com.stowup.listingdocument.domain.OwnerListingDocument;
+import br.com.stowup.notification.DocumentEmailService;
 import br.com.stowup.notification.NotificationService;
 import br.com.stowup.space.Space;
 import br.com.stowup.user.UserAccount;
@@ -28,12 +29,14 @@ public class ListingDocumentService {
   private final Path signedRoot;
   private final NotificationService notifications;
   private final AuditService audit;
+  private final DocumentEmailService documentEmails;
 
   public ListingDocumentService(
       OwnerListingDocumentRepository documents,
       ListingDocumentGenerator generator,
       UserRepository users,
       NotificationService notifications,
+      DocumentEmailService documentEmails,
       AuditService audit,
       @Value("${stowup.uploads.directory}") String directory) {
     this.documents = documents;
@@ -46,6 +49,7 @@ public class ListingDocumentService {
             .resolve("listing-documents")
             .resolve("signed");
     this.notifications = notifications;
+    this.documentEmails = documentEmails;
     this.audit = audit;
   }
 
@@ -54,7 +58,20 @@ public class ListingDocumentService {
     String generatedPath = generator.generate(space).toString();
     return documents
         .findBySpaceId(space.getId())
-        .orElseGet(() -> documents.save(new OwnerListingDocument(space, generatedPath)));
+        .orElseGet(
+            () -> {
+              OwnerListingDocument created =
+                  documents.save(new OwnerListingDocument(space, generatedPath));
+              documentEmails.sendPdf(
+                  space.getOwner().getEmail(),
+                  "Termo do seu anúncio StowUp",
+                  "Olá, "
+                      + space.getOwner().getName()
+                      + ".\n\nO termo do anúncio está anexado. Confira, assine pelo gov.br e envie o PDF assinado pelo aplicativo StowUp.",
+                  Path.of(generatedPath),
+                  "termo-anunciante-" + space.getId() + ".pdf");
+              return created;
+            });
   }
 
   @Transactional(readOnly = true)

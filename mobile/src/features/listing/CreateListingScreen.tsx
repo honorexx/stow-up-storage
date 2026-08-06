@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 import { RootStackParamList } from '../../app/navigation/types';
-import { createSpace, LocalImage, uploadSpacePhoto } from '../../core/api/marketplace';
+import { createSpace, LocalImage, updateOwnedSpace, uploadSpacePhoto } from '../../core/api/marketplace';
 import { PrimaryButton } from '../../shared/components/PrimaryButton';
 import { colors } from '../../shared/theme';
 import { useAuth } from '../auth/AuthContext';
@@ -27,23 +27,27 @@ import { lookupBrazilianPostalCode } from '../../core/api/postalCode';
 const categories = ['Box', 'Armário', 'Quarto', 'Garagem', 'Depósito', 'Galpão', 'Container'];
 export function CreateListingScreen({
   navigation,
+  route,
 }: NativeStackScreenProps<RootStackParamList, 'CreateListing'>) {
   const auth = useAuth();
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState('Box');
-  const [height, setHeight] = useState('');
-  const [length, setLength] = useState('');
-  const [depth, setDepth] = useState('');
-  const [price, setPrice] = useState('');
-  const [description, setDescription] = useState('');
-  const [features, setFeatures] = useState('Câmeras, Segurança, Área interna');
-  const [postalCode, setPostalCode] = useState('');
-  const [addressLine, setAddressLine] = useState('');
-  const [addressNumber, setAddressNumber] = useState('');
-  const [addressComplement, setAddressComplement] = useState('');
-  const [district, setDistrict] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
+  const editing = route.params?.space;
+  const [title, setTitle] = useState(editing?.title ?? '');
+  const [type, setType] = useState(editing?.type ?? 'Box');
+  const [height, setHeight] = useState(editing ? String(editing.heightMeters) : '');
+  const [length, setLength] = useState(editing ? String(editing.lengthMeters) : '');
+  const [depth, setDepth] = useState(editing ? String(editing.depthMeters) : '');
+  const [price, setPrice] = useState(editing ? String(editing.price) : '');
+  const [description, setDescription] = useState(editing?.description ?? '');
+  const [features, setFeatures] = useState(
+    editing?.features.join(', ') ?? 'Câmeras, Segurança, Área interna',
+  );
+  const [postalCode, setPostalCode] = useState(editing ? formatPostalCode(editing.postalCode) : '');
+  const [addressLine, setAddressLine] = useState(editing?.addressLine ?? '');
+  const [addressNumber, setAddressNumber] = useState(editing?.addressNumber ?? '');
+  const [addressComplement, setAddressComplement] = useState(editing?.addressComplement ?? '');
+  const [district, setDistrict] = useState(editing?.district ?? '');
+  const [city, setCity] = useState(editing?.city ?? '');
+  const [state, setState] = useState(editing?.state ?? '');
   const [photos, setPhotos] = useState<LocalImage[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -113,7 +117,7 @@ export function CreateListingScreen({
       state.trim().length !== 2 && 'UF',
     ].filter(Boolean);
     if (missing.length) return setError(`Complete o endereço do espaço. Falta: ${missing.join(', ')}.`);
-    if (photos.length < 4)
+    if ((editing?.photos.length ?? 0) + photos.length < 4)
       return setError('Adicione pelo menos 4 fotos: fachada, entrada, área interna e visão geral.');
     setLoading(true);
     setError('');
@@ -141,7 +145,7 @@ export function CreateListingScreen({
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);
-      const created = await createSpace(auth.token, {
+      const payload = {
         title: title.trim(),
         type,
         size: Math.max(1, Math.ceil(areaValue)),
@@ -160,7 +164,10 @@ export function CreateListingScreen({
         state: state.trim().toUpperCase(),
         latitude,
         longitude,
-      });
+      };
+      const created = editing
+        ? await updateOwnedSpace(auth.token, editing.id, payload)
+        : await createSpace(auth.token, payload);
       await auth.refreshProfile();
       setPhase('Enviando as fotos...');
       const failedPhotos: string[] = [];
@@ -175,7 +182,7 @@ export function CreateListingScreen({
       }
       if (failedPhotos.length)
         Alert.alert(
-          'Anúncio cadastrado',
+          editing ? 'Anúncio atualizado' : 'Anúncio cadastrado',
           `O anúncio foi salvo, mas ${failedPhotos.length} foto(s) não foram enviadas.\n\n${failedPhotos.join('\n')}\n\nTente novamente em Meus anúncios.`,
         );
       navigation.replace('ListingDocument', { spaceId: created.id, title: created.title });
@@ -193,7 +200,7 @@ export function CreateListingScreen({
           <Text onPress={navigation.goBack} style={styles.back}>
             ‹ Voltar
           </Text>
-          <Text style={styles.headerTitle}>Novo anúncio</Text>
+          <Text style={styles.headerTitle}>{editing ? 'Editar anúncio' : 'Novo anúncio'}</Text>
           <View style={{ width: 52 }} />
         </View>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -335,7 +342,11 @@ export function CreateListingScreen({
             </View>
           )}
           {loading && <Text style={styles.phase}>{phase}</Text>}
-          <PrimaryButton label="Continuar para assinatura" onPress={submit} loading={loading} />
+          <PrimaryButton
+            label={editing ? 'Salvar e enviar para análise' : 'Continuar para assinatura'}
+            onPress={submit}
+            loading={loading}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

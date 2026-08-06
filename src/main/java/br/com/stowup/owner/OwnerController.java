@@ -221,6 +221,47 @@ public class OwnerController {
     return view(saved);
   }
 
+  @PatchMapping("/spaces/{id}")
+  @Transactional
+  public OwnerSpaceView update(
+      @PathVariable Long id, @Valid @RequestBody CreateSpaceRequest request, Principal principal) {
+    Space space =
+        spaces
+            .findByIdAndOwnerEmailIgnoreCase(id, principal.getName())
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Anúncio não encontrado."));
+    boolean hasActiveBooking =
+        bookings.availability(id).stream()
+            .anyMatch(
+                booking ->
+                    booking.getStatus() == BookingStatus.PENDING
+                        || booking.getStatus() == BookingStatus.CONFIRMED);
+    if (hasActiveBooking)
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Não é possível editar um anúncio com reserva ativa.");
+    space.updateByOwner(
+        request.title(),
+        request.city(),
+        request.district(),
+        digits(request.postalCode()),
+        request.addressLine(),
+        request.addressNumber(),
+        request.addressComplement(),
+        request.state(),
+        request.type(),
+        request.size(),
+        request.price(),
+        request.latitude(),
+        request.longitude(),
+        request.description(),
+        request.features(),
+        request.heightMeters(),
+        request.lengthMeters(),
+        request.depthMeters());
+    audit.record(principal.getName(), "SPACE_OWNER_UPDATED", "SPACE", id, request.title());
+    return view(space);
+  }
+
   @PostMapping(value = "/spaces/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Transactional
   public OwnerSpaceView uploadPhoto(

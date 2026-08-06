@@ -1,7 +1,5 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,6 +16,7 @@ import {
 import { PrimaryButton } from '../../shared/components/PrimaryButton';
 import { colors } from '../../shared/theme';
 import { useAuth } from '../auth/AuthContext';
+import { downloadAuthenticatedPdf } from '../../core/files/download';
 
 export function ListingDocumentScreen({
   navigation,
@@ -45,22 +44,11 @@ export function ListingDocumentScreen({
     if (!token) return;
     setBusy('download');
     try {
-      const destination = `${FileSystem.cacheDirectory}termo-anunciante-${route.params.spaceId}.pdf`;
-      await FileSystem.deleteAsync(destination, { idempotent: true });
-      const result = await FileSystem.downloadAsync(
+      await downloadAuthenticatedPdf(
         listingDocumentPdfUrl(route.params.spaceId),
-        destination,
-        { headers: { Authorization: `Bearer ${token}` } },
+        token,
+        `termo-anunciante-${route.params.spaceId}.pdf`,
       );
-      if (result.status < 200 || result.status >= 300) {
-        await FileSystem.deleteAsync(result.uri, { idempotent: true });
-        throw new Error('Não foi possível gerar o termo em PDF. Tente novamente.');
-      }
-      if (await Sharing.isAvailableAsync())
-        await Sharing.shareAsync(result.uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Salvar termo do anunciante',
-        });
     } catch (e: any) {
       Alert.alert('Documento', e.message);
     } finally {

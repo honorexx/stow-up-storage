@@ -164,10 +164,6 @@ Write-Host 'Compilando Spring Boot...' -ForegroundColor Cyan
 & $maven -f (Join-Path $root 'pom.xml') package -DskipTests
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar o Spring Boot.' }
 
-Write-Host 'Compilando central JavaFX...' -ForegroundColor Cyan
-& $maven -f (Join-Path $root 'staff-desktop\pom.xml') package -DskipTests
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar a central JavaFX.' }
-
 Write-Host ''
 Write-Host 'INSTALAÇÃO CONCLUÍDA' -ForegroundColor Green
 Write-Host "API mobile configurada para http://${ip}:8080/api"

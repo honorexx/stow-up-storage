@@ -21,6 +21,8 @@ public class AesSensitiveDataProtector implements SensitiveDataProtector {
   private final SecureRandom random = new SecureRandom();
 
   public AesSensitiveDataProtector(@Value("${stowup.data.encryption-key}") String secret) {
+    if (secret == null || secret.length() < 32)
+      throw new IllegalStateException("DATA_ENCRYPTION_KEY deve possuir pelo menos 32 caracteres.");
     try {
       byte[] digest =
           MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8));

@@ -131,8 +131,8 @@ export function OwnerDashboardScreen({
             <View key={item.bookingId} style={s.row}>
               <Text style={s.rowTitle}>{item.spaceTitle}</Text>
               <Text style={s.muted}>
-                {item.customer} · início {new Date(`${item.start}T12:00:00`).toLocaleDateString('pt-BR')} · término{' '}
-                {new Date(`${item.end}T12:00:00`).toLocaleDateString('pt-BR')}
+                {item.customer} · início {new Date(`${item.start}T12:00:00`).toLocaleDateString('pt-BR')} ·
+                término {new Date(`${item.end}T12:00:00`).toLocaleDateString('pt-BR')}
               </Text>
               <Text style={s.muted}>
                 {item.customerConfirmed

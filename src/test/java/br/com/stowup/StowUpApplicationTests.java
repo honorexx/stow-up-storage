@@ -27,6 +27,7 @@ class StowUpApplicationTests {
 
   @Test
   void doesNotExposePrivateUploadedDocumentsAsStaticFiles() throws Exception {
+    mvc.perform(get("/staff/")).andExpect(status().isOk());
     mvc.perform(get("/uploads/contracts/signed-contract.pdf")).andExpect(status().isForbidden());
     mvc.perform(get("/uploads/listing-documents/signed/document.pdf"))
         .andExpect(status().isForbidden());
@@ -51,6 +52,12 @@ class StowUpApplicationTests {
             .getResponse()
             .getContentAsString();
     JsonNode register = json.readTree(registerBody);
+
+    mvc.perform(
+            post("/api/auth/staff-login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"cliente@stowup.test\",\"password\":\"Senha@123\"}"))
+        .andExpect(status().isUnauthorized());
 
     mvc.perform(
             post("/api/auth/register")
@@ -88,6 +95,9 @@ class StowUpApplicationTests {
         .andExpect(jsonPath("$.addressLine").value("Avenida Paulista"));
 
     byte[] twoMegabyteImage = new byte[2 * 1024 * 1024];
+    twoMegabyteImage[0] = (byte) 0xff;
+    twoMegabyteImage[1] = (byte) 0xd8;
+    twoMegabyteImage[2] = (byte) 0xff;
     MockMultipartFile photo =
         new MockMultipartFile("file", "espaco.jpg", "image/jpeg", twoMegabyteImage);
     mvc.perform(
@@ -96,6 +106,17 @@ class StowUpApplicationTests {
                 .header("Authorization", "Bearer " + register.get("token").asText()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.photos.length()").value(1));
+
+    MockMultipartFile fakePhoto =
+        new MockMultipartFile("file", "nao-e-foto.jpg", "image/jpeg", "conteudo falso".getBytes());
+    mvc.perform(
+            multipart("/api/owner/spaces/1/photos")
+                .file(fakePhoto)
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            jsonPath("$.message")
+                .value("O conteúdo do arquivo não corresponde a uma imagem válida."));
 
     mvc.perform(
             get("/api/owner/spaces")
@@ -228,7 +249,7 @@ class StowUpApplicationTests {
 
     String moderatorBody =
         mvc.perform(
-                post("/api/auth/login")
+                post("/api/auth/staff-login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"email\":\"" + staffCode + "\",\"password\":\"Temporaria@123\"}"))
             .andExpect(status().isOk())
@@ -246,6 +267,86 @@ class StowUpApplicationTests {
         .andExpect(status().isForbidden());
     mvc.perform(get("/api/admin/staff").header("Authorization", "Bearer " + moderatorToken))
         .andExpect(status().isForbidden());
+
+    byte[] validPng = new byte[] {(byte) 0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0};
+    for (int index = 2; index <= 4; index++) {
+      mvc.perform(
+              multipart("/api/owner/spaces/1/photos")
+                  .file(
+                      new MockMultipartFile(
+                          "file", "espaco-" + index + ".png", "image/png", validPng))
+                  .header("Authorization", "Bearer " + register.get("token").asText()))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.photos.length()").value(index));
+    }
+
+    mvc.perform(
+            patch("/api/owner/spaces/1")
+                .header("Authorization", "Bearer " + register.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"title\":\"Box atualizado pelo proprietário\",\"city\":\"São Paulo\",\"district\":\"Bela Vista\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"1001\",\"addressComplement\":\"Subsolo\",\"state\":\"SP\",\"type\":\"Box\",\"size\":8,\"heightMeters\":2.5,\"lengthMeters\":4,\"depthMeters\":2,\"price\":365.00,\"latitude\":-23.5614,\"longitude\":-46.6559,\"description\":\"Espaço atualizado, seco, monitorado e com acesso controlado todos os dias.\",\"features\":[\"Câmeras\",\"Acesso controlado\"]}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Box atualizado pelo proprietário"))
+        .andExpect(jsonPath("$.price").value(365.00))
+        .andExpect(jsonPath("$.moderationStatus").value("PENDING"))
+        .andExpect(jsonPath("$.lifecycleStatus").value("IN_REVIEW"))
+        .andExpect(jsonPath("$.photos.length()").value(4));
+
+    String listingDocumentBody =
+        mvc.perform(
+                get("/api/owner/spaces/1/document")
+                    .header("Authorization", "Bearer " + register.get("token").asText()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("GENERATED"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String listingDocumentId = json.readTree(listingDocumentBody).get("id").asText();
+    mvc.perform(
+            multipart("/api/owner/spaces/1/document/signed")
+                .file(
+                    new MockMultipartFile(
+                        "file",
+                        "termo-assinado.pdf",
+                        "application/pdf",
+                        "%PDF-1.4\n%%EOF".getBytes()))
+                .header("Authorization", "Bearer " + register.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("PENDING_REVIEW"));
+
+    mvc.perform(
+            post("/api/staff/listing-documents/" + listingDocumentId + "/review")
+                .header("Authorization", "Bearer " + master.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"approved\":true,\"signerNameMatches\":true,\"validatorReference\":\"VALIDAR-ITI-QA\",\"notes\":\"Assinatura e titularidade conferidas.\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("APPROVED"));
+
+    mvc.perform(
+            patch("/api/admin/spaces/1")
+                .header("Authorization", "Bearer " + master.get("token").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"title\":\"Box revisado próximo ao metrô\",\"description\":\"Espaço seco, monitorado e com acesso controlado todos os dias.\",\"type\":\"Box\",\"heightMeters\":2.5,\"lengthMeters\":4,\"depthMeters\":2,\"price\":375.00,\"city\":\"São Paulo\",\"district\":\"Bela Vista\",\"postalCode\":\"01310-100\",\"addressLine\":\"Avenida Paulista\",\"addressNumber\":\"1001\",\"addressComplement\":\"Subsolo\",\"state\":\"SP\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Box revisado próximo ao metrô"))
+        .andExpect(jsonPath("$.photos.length()").value(4));
+
+    mvc.perform(
+            post("/api/admin/spaces/1/approve")
+                .header("Authorization", "Bearer " + master.get("token").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.moderationStatus").value("APPROVED"));
+
+    mvc.perform(get("/api/spaces/1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Box revisado próximo ao metrô"))
+        .andExpect(jsonPath("$.photos.length()").value(4));
+    mvc.perform(get("/api/spaces?query=metrô"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(1));
 
     mvc.perform(
             post("/api/auth/login")

@@ -1,5 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Platform, Text, useWindowDimensions } from 'react-native';
 import { ExploreScreen } from '../../features/explore/ExploreScreen';
 import { colors } from '../../shared/theme';
 import { MainTabParamList } from './types';
@@ -18,16 +18,30 @@ const icons: Record<keyof MainTabParamList, string> = {
 };
 
 export function MainTabs() {
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === 'web' && width >= 960;
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarPosition: desktop ? 'left' : 'bottom',
         tabBarActiveTintColor: colors.orange,
+        tabBarActiveBackgroundColor: desktop ? colors.orangeSoft : undefined,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { height: 72, paddingTop: 8, paddingBottom: 9, borderTopColor: colors.line },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarStyle: desktop
+          ? {
+              width: 210,
+              paddingTop: 22,
+              paddingHorizontal: 12,
+              borderRightColor: colors.line,
+              backgroundColor: '#fff',
+            }
+          : { height: 72, paddingTop: 8, paddingBottom: 9, borderTopColor: colors.line },
+        tabBarItemStyle: desktop ? { maxHeight: 58, borderRadius: 14 } : undefined,
+        tabBarLabelPosition: desktop ? 'beside-icon' : 'below-icon',
+        tabBarLabelStyle: { fontSize: desktop ? 13 : 11, fontWeight: '700' },
         tabBarIcon: ({ color }) => (
-          <Text style={{ color, fontSize: 23, fontWeight: '700' }}>{icons[route.name]}</Text>
+          <Text style={{ color, fontSize: desktop ? 19 : 23, fontWeight: '700' }}>{icons[route.name]}</Text>
         ),
       })}
     >

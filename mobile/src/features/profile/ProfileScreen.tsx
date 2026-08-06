@@ -125,7 +125,7 @@ export function ProfileScreen({ navigation }: BottomTabScreenProps<MainTabParamL
                 ? 'Cliente'
                 : auth.user.role === 'OWNER'
                   ? 'Proprietário'
-                  : 'Administrador'
+                  : 'Conta StowUp'
             }
           />
         </View>
@@ -142,7 +142,7 @@ export function ProfileScreen({ navigation }: BottomTabScreenProps<MainTabParamL
           />
           <PrimaryButton secondary label="Avaliações disponíveis" onPress={() => root?.navigate('Reviews')} />
           <PrimaryButton secondary label="Meus anúncios" onPress={() => root?.navigate('MyListings')} />
-          {auth.user.role === 'OWNER' && (
+          {(auth.user.role === 'OWNER' || auth.user.role === 'ADMIN') && (
             <PrimaryButton
               secondary
               label="Painel e locações dos meus espaços"

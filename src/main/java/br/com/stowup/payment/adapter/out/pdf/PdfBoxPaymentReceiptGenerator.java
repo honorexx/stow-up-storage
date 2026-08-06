@@ -22,8 +22,7 @@ import org.springframework.stereotype.Component;
 @Component
 class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
   private static final DateTimeFormatter DATE =
-      DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm")
-          .withZone(ZoneId.of("America/Sao_Paulo"));
+      DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm").withZone(ZoneId.of("America/Sao_Paulo"));
   private static final Locale BRAZIL = new Locale("pt", "BR");
 
   @Override
@@ -56,26 +55,8 @@ class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
     fill(content, 0, 738, 595, 4, 255, 90, 31);
     text(content, bold, 22, 48, 798, "StowUp", 255, 255, 255);
     text(content, bold, 14, 48, 773, "COMPROVANTE DE PAGAMENTO", 255, 255, 255);
-    text(
-        content,
-        regular,
-        8,
-        430,
-        797,
-        "Reserva " + safe(payment.bookingId()),
-        220,
-        230,
-        240);
-    text(
-        content,
-        regular,
-        8,
-        430,
-        779,
-        DATE.format(payment.updatedAt()),
-        220,
-        230,
-        240);
+    text(content, regular, 8, 430, 797, "Reserva " + safe(payment.bookingId()), 220, 230, 240);
+    text(content, regular, 8, 430, 779, DATE.format(payment.updatedAt()), 220, 230, 240);
   }
 
   private static void statusCard(
@@ -84,24 +65,8 @@ class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
     boolean approved = "approved".equalsIgnoreCase(payment.status());
     int[] background = approved ? new int[] {232, 247, 239} : new int[] {255, 242, 232};
     int[] foreground = approved ? new int[] {26, 127, 75} : new int[] {190, 83, 20};
-    fill(
-        content,
-        48,
-        656,
-        499,
-        56,
-        background[0],
-        background[1],
-        background[2]);
-    fill(
-        content,
-        48,
-        656,
-        6,
-        56,
-        foreground[0],
-        foreground[1],
-        foreground[2]);
+    fill(content, 48, 656, 499, 56, background[0], background[1], background[2]);
+    fill(content, 48, 656, 6, 56, foreground[0], foreground[1], foreground[2]);
     text(content, bold, 9, 70, 689, "SITUAÇÃO DO PAGAMENTO", 80, 96, 116);
     text(
         content,
@@ -113,26 +78,8 @@ class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
         foreground[0],
         foreground[1],
         foreground[2]);
-    text(
-        content,
-        regular,
-        8,
-        392,
-        681,
-        "ID Mercado Pago",
-        80,
-        96,
-        116);
-    text(
-        content,
-        bold,
-        9,
-        392,
-        668,
-        safe(payment.providerPaymentId()),
-        23,
-        43,
-        67);
+    text(content, regular, 8, 392, 681, "ID Mercado Pago", 80, 96, 116);
+    text(content, bold, 9, 392, 668, safe(payment.providerPaymentId()), 23, 43, 67);
   }
 
   private static void detailsCard(
@@ -157,14 +104,7 @@ class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
     y = row(content, regular, bold, y, "Código da reserva", payment.bookingId());
     y =
         wrappedRow(
-            content,
-            regular,
-            bold,
-            y,
-            "Preferência",
-            payment.providerPreferenceId(),
-            8,
-            315);
+            content, regular, bold, y, "Preferência", payment.providerPreferenceId(), 8, 315);
     row(content, regular, bold, y, "Atualizado em", DATE.format(payment.updatedAt()));
   }
 
@@ -196,35 +136,12 @@ class PdfBoxPaymentReceiptGenerator implements PaymentReceiptGenerator {
         128,
         145);
     line(content, 48, 90, 547, 90, 230, 234, 239);
-    text(
-        content,
-        bold,
-        8,
-        48,
-        70,
-        "StowUp - Seu espaço, quando precisar.",
-        0,
-        43,
-        92);
-    text(
-        content,
-        regular,
-        7.5f,
-        395,
-        70,
-        "Documento gerado eletronicamente",
-        115,
-        128,
-        145);
+    text(content, bold, 8, 48, 70, "StowUp - Seu espaço, quando precisar.", 0, 43, 92);
+    text(content, regular, 7.5f, 395, 70, "Documento gerado eletronicamente", 115, 128, 145);
   }
 
   private static float row(
-      PDPageContentStream content,
-      PDFont regular,
-      PDFont bold,
-      float y,
-      String label,
-      String value)
+      PDPageContentStream content, PDFont regular, PDFont bold, float y, String label, String value)
       throws IOException {
     text(content, bold, 8.5f, 68, y, label.toUpperCase(BRAZIL), 96, 112, 134);
     text(content, regular, 10, 210, y, safe(value), 23, 43, 67);

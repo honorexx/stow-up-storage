@@ -21,6 +21,10 @@ public class JwtService implements AccessTokenIssuer {
       @Value("${stowup.jwt.secret}") String secret,
       @Value("${stowup.jwt.issuer}") String issuer,
       @Value("${stowup.jwt.expiration-hours}") long expirationHours) {
+    if (secret == null || secret.length() < 32)
+      throw new IllegalStateException("JWT_SECRET deve possuir pelo menos 32 caracteres.");
+    if (expirationHours < 1 || expirationHours > 168)
+      throw new IllegalStateException("A validade do token deve ficar entre 1 e 168 horas.");
     this.algorithm = Algorithm.HMAC256(secret);
     this.issuer = issuer;
     this.expirationHours = expirationHours;

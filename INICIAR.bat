@@ -12,6 +12,5 @@ if errorlevel 1 (
   exit /b 1
 )
 start "StowUp - Expo" powershell.exe -NoExit -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\start-expo.ps1"
-start "StowUp - Central JavaFX" powershell.exe -NoExit -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\start-staff-desktop.ps1"
-echo StowUp iniciado. Abra o Expo Go no celular.
+echo StowUp iniciado. Abra o Expo Go no celular ou acesse a versão web do Expo.
 pause
