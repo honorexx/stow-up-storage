@@ -29,8 +29,10 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -352,6 +354,7 @@ public class AdminController {
             request.email().trim(),
             passwords.encode(request.password()),
             request.role());
+    staff.setAdditionalRoles(sanitizeAdditionalRoles(request.role(), request.additionalRoles()));
     staff.setStaffCode(nextStaffCode());
     return StaffView.from(users.save(staff));
   }
@@ -364,6 +367,7 @@ public class AdminController {
     requireAssignableRole(request.role());
     staff.setName(request.name().trim());
     staff.setRole(request.role());
+    staff.setAdditionalRoles(sanitizeAdditionalRoles(request.role(), request.additionalRoles()));
     staff.setEnabled(request.enabled());
     return StaffView.from(staff);
   }
@@ -412,6 +416,17 @@ public class AdminController {
     }
   }
 
+  private Set<Role> sanitizeAdditionalRoles(Role primaryRole, Set<Role> requested) {
+    if (requested == null || requested.isEmpty()) return Set.of();
+    Set<Role> sanitized = new LinkedHashSet<>();
+    for (Role role : requested) {
+      if (role == null || role == primaryRole) continue;
+      requireAssignableRole(role);
+      sanitized.add(role);
+    }
+    return sanitized;
+  }
+
   private String nextStaffCode() {
     for (int attempt = 0; attempt < 100; attempt++) {
       String code = "SU%06d".formatted(RANDOM.nextInt(1_000_000));
@@ -448,7 +463,8 @@ public class AdminController {
       @NotBlank @Size(min = 3, max = 120) String name,
       @NotBlank @Email String email,
       @NotBlank @Size(min = 10, max = 72) String password,
-      @NotNull Role role) {}
+      @NotNull Role role,
+      Set<Role> additionalRoles) {}
 
   public record UpdateAppUserRequest(
       @NotBlank @Size(min = 3, max = 120) String name,
@@ -581,12 +597,21 @@ public class AdminController {
   }
 
   public record UpdateStaffRequest(
-      @NotBlank @Size(min = 3, max = 120) String name, @NotNull Role role, boolean enabled) {}
+      @NotBlank @Size(min = 3, max = 120) String name,
+      @NotNull Role role,
+      Set<Role> additionalRoles,
+      boolean enabled) {}
 
   public record ResetPasswordRequest(@NotBlank @Size(min = 10, max = 72) String password) {}
 
   public record StaffView(
-      Long id, String staffCode, String name, String email, Role role, boolean enabled) {
+      Long id,
+      String staffCode,
+      String name,
+      String email,
+      Role role,
+      Set<Role> additionalRoles,
+      boolean enabled) {
     static StaffView from(UserAccount user) {
       return new StaffView(
           user.getId(),
@@ -594,6 +619,7 @@ public class AdminController {
           user.getName(),
           user.getEmail(),
           user.getRole(),
+          user.getAdditionalRoles(),
           user.isEnabled());
     }
   }

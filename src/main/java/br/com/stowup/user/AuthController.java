@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -133,7 +134,8 @@ public class AuthController {
       String city,
       String state,
       String photoUrl,
-      AccountRole role) {
+      AccountRole role,
+      Set<AccountRole> additionalRoles) {
     public static UserView from(Account account) {
       return new UserView(
           account.id(),
@@ -149,7 +151,8 @@ public class AuthController {
           account.city(),
           account.state(),
           account.photoUrl(),
-          account.role());
+          account.role(),
+          account.additionalRoles() == null ? Set.of() : account.additionalRoles());
     }
   }
 }

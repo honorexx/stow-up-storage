@@ -8,6 +8,8 @@ import br.com.stowup.user.Role;
 import br.com.stowup.user.UserAccount;
 import br.com.stowup.user.UserRepository;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -87,6 +89,12 @@ public class JpaAccountStore implements AccountStore {
     entity.setState(account.state());
     entity.setPhotoUrl(account.photoUrl());
     entity.setRole(Role.valueOf(account.role().name()));
+    entity.setAdditionalRoles(
+        account.additionalRoles() == null
+            ? Set.of()
+            : account.additionalRoles().stream()
+                .map(role -> Role.valueOf(role.name()))
+                .collect(Collectors.toSet()));
     return toDomain(repository.save(entity));
   }
 
@@ -121,6 +129,9 @@ public class JpaAccountStore implements AccountStore {
         entity.getState(),
         entity.getPhotoUrl(),
         AccountRole.valueOf(entity.getRole().name()),
+        entity.getAdditionalRoles().stream()
+            .map(role -> AccountRole.valueOf(role.name()))
+            .collect(Collectors.toSet()),
         entity.isEnabled(),
         entity.getCreatedAt());
   }

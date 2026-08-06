@@ -2,6 +2,8 @@ package br.com.stowup.user;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -69,6 +71,12 @@ public class UserAccount {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private Role role = Role.CUSTOMER;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "user_additional_roles", joinColumns = @JoinColumn(name = "user_id"))
+  @Enumerated(EnumType.STRING)
+  @Column(name = "role", length = 20)
+  private Set<Role> additionalRoles = new HashSet<>();
 
   @Column(nullable = false)
   private boolean enabled = true;
@@ -169,6 +177,10 @@ public class UserAccount {
     return role;
   }
 
+  public Set<Role> getAdditionalRoles() {
+    return additionalRoles;
+  }
+
   public boolean isEnabled() {
     return enabled;
   }
@@ -250,6 +262,11 @@ public class UserAccount {
     this.role = role;
   }
 
+  public void setAdditionalRoles(Set<Role> additionalRoles) {
+    this.additionalRoles =
+        additionalRoles == null ? new HashSet<>() : new HashSet<>(additionalRoles);
+  }
+
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
   }
@@ -275,6 +292,7 @@ public class UserAccount {
     this.latitude = null;
     this.longitude = null;
     this.role = Role.CUSTOMER;
+    this.additionalRoles = new HashSet<>();
     this.enabled = false;
   }
 

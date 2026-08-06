@@ -39,7 +39,11 @@ export function Shell() {
         <div className="sidebar-footer">
           <div className="identity">
             <strong>{session.user.name}</strong>
-            <small>{ROLE_LABELS[session.user.role]}</small>
+            <small>
+              {[session.user.role, ...(session.user.additionalRoles ?? [])]
+                .map((role) => ROLE_LABELS[role])
+                .join(' · ')}
+            </small>
           </div>
           <button type="button" className="btn btn-ghost" onClick={logout}>
             Sair

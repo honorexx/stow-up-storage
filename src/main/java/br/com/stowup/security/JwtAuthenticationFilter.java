@@ -2,13 +2,17 @@ package br.com.stowup.security;
 
 import br.com.stowup.account.application.port.out.AccountStore;
 import br.com.stowup.account.domain.Account;
+import br.com.stowup.account.domain.AccountRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -41,10 +45,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                   SecurityContextHolder.getContext()
                       .setAuthentication(
                           new UsernamePasswordAuthenticationToken(
-                              user.email(),
-                              null,
-                              List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())))));
+                              user.email(), null, authoritiesFor(user))));
     }
     chain.doFilter(request, response);
+  }
+
+  private static Set<GrantedAuthority> authoritiesFor(Account user) {
+    Set<AccountRole> roles = new LinkedHashSet<>();
+    roles.add(user.role());
+    if (user.additionalRoles() != null) roles.addAll(user.additionalRoles());
+    return roles.stream()
+        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+        .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 }

@@ -59,6 +59,7 @@ class PasswordRecoveryServiceTest {
             "PR",
             null,
             AccountRole.CUSTOMER,
+            java.util.Set.of(),
             true,
             Instant.now());
     when(accounts.findByEmail(account.email())).thenReturn(Optional.of(account));

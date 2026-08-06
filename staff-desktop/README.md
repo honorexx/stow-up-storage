@@ -1,6 +1,6 @@
 # StowUp HQ — Central Interna
 
-App desktop (Windows e Mac) para a equipe da StowUp, organizado por departamento em vez de telas soltas por função. Cada funcionário entra com o código `SU123456` (ou e-mail) e vê apenas os módulos permitidos pelo seu papel.
+App desktop (Windows e Mac) para a equipe da StowUp, organizado por departamento em vez de telas soltas por função. Cada funcionário entra com o código `SU123456` (ou e-mail) e vê apenas os módulos permitidos pelas suas áreas — um funcionário pode acumular mais de uma área (ex: Atendimento + Contratos), atribuídas pela Diretoria em RH → Equipe.
 
 Construído com **Electron + React + TypeScript + Vite**, consumindo a mesma API Spring Boot usada pelo app mobile.
 

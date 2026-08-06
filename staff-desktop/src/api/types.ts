@@ -12,6 +12,7 @@ export interface StaffUserInfo {
   name: string;
   email: string;
   role: StaffRole;
+  additionalRoles: StaffRole[];
 }
 
 export interface AuthResponse {
@@ -130,6 +131,7 @@ export interface StaffView {
   name: string;
   email: string;
   role: StaffRole;
+  additionalRoles: StaffRole[];
   enabled: boolean;
 }
 

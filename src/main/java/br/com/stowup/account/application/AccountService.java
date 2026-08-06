@@ -10,6 +10,7 @@ import br.com.stowup.account.domain.AccountRole;
 import br.com.stowup.account.domain.Cpf;
 import br.com.stowup.legal.TermsPolicy;
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +72,7 @@ public class AccountService {
                 command.state().trim().toUpperCase(),
                 null,
                 AccountRole.CUSTOMER,
+                Set.of(),
                 true,
                 Instant.now()));
     termsAcceptances.record(account.id(), TermsPolicy.CODE, TermsPolicy.CURRENT_VERSION);

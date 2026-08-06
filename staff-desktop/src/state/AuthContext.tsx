@@ -17,15 +17,20 @@ export interface Permissions {
   canReviewContracts: boolean;
 }
 
-function permissionsFor(role: StaffRole): Permissions {
-  const isAdmin = role === 'ADMIN';
+function permissionsFor(roles: StaffRole[]): Permissions {
+  const isAdmin = roles.includes('ADMIN');
   return {
     isAdmin,
-    canSupport: isAdmin || role === 'SUPPORT',
-    canModerate: isAdmin || role === 'MODERATOR' || role === 'LISTING_ANALYST',
-    canReviewDocuments: isAdmin || role === 'DOCUMENT_ANALYST',
-    canReviewContracts: isAdmin || role === 'MODERATOR' || role === 'CONTRACT_ANALYST',
+    canSupport: isAdmin || roles.includes('SUPPORT'),
+    canModerate: isAdmin || roles.includes('MODERATOR') || roles.includes('LISTING_ANALYST'),
+    canReviewDocuments: isAdmin || roles.includes('DOCUMENT_ANALYST'),
+    canReviewContracts: isAdmin || roles.includes('MODERATOR') || roles.includes('CONTRACT_ANALYST'),
   };
+}
+
+function rolesOf(user: StaffUserInfo | undefined): StaffRole[] {
+  if (!user) return [];
+  return [user.role, ...(user.additionalRoles ?? [])];
 }
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
@@ -86,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   }, []);
 
-  const permissions = useMemo(() => permissionsFor(session?.user.role ?? 'SUPPORT'), [session?.user.role]);
+  const permissions = useMemo(() => permissionsFor(rolesOf(session?.user)), [session?.user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({ session, permissions, loading, error, login, logout }),

@@ -1,6 +1,7 @@
 package br.com.stowup.account.domain;
 
 import java.time.Instant;
+import java.util.Set;
 
 public record Account(
     Long id,
@@ -18,6 +19,7 @@ public record Account(
     String state,
     String photoUrl,
     AccountRole role,
+    Set<AccountRole> additionalRoles,
     boolean enabled,
     Instant createdAt) {
   public Account withProfile(
@@ -46,6 +48,7 @@ public record Account(
         state,
         photoUrl,
         role,
+        additionalRoles,
         enabled,
         createdAt);
   }
@@ -67,6 +70,7 @@ public record Account(
         state,
         photoUrl,
         role,
+        additionalRoles,
         enabled,
         createdAt);
   }
@@ -88,6 +92,7 @@ public record Account(
         state,
         photoUrl,
         role,
+        additionalRoles,
         enabled,
         createdAt);
   }
