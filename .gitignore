@@ -1,7 +1,10 @@
 target/
-staff-desktop/target/
 node_modules/
 mobile/node_modules/
+staff-desktop/node_modules/
+staff-desktop/dist/
+staff-desktop/dist-electron/
+staff-desktop/release/
 data/
 .runtime/
 postgres-data/

@@ -39,11 +39,19 @@ jobs:
 
   staff-desktop:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: staff-desktop
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: pnpm/action-setup@v4
         with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-      - run: mvn --batch-mode -f staff-desktop/pom.xml spotless:check test
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: staff-desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm run format:check
