@@ -32,8 +32,10 @@ Execute apenas uma instalação local do StowUp por vez. Se outra cópia já est
 ## Abrir pelo IntelliJ
 
 - Abra a pasta raiz para editar e executar o Spring Boot.
-- A aplicação pública está em `mobile/`; a Central Administrativa independente está em `src/main/resources/static/staff/`.
-- As configurações compartilhadas ficam em `.run/`: `StowUp — API + Site`, `StowUp — App Mobile`, `StowUp — App Web` e `StowUp — Tudo (Web)`.
+- A aplicação pública está em `mobile/`.
+- A **Central Interna** (app desktop para funcionários) está em `staff-desktop/` — JavaFX, instalável no PC/Mac.
+- O atendimento web leve continua em `src/main/resources/static/staff/`.
+- As configurações compartilhadas ficam em `.run/`: `StowUp — API + Site`, `StowUp Staff Desktop`, `StowUp — App Mobile`, `StowUp — App Web` e `StowUp — Tudo (Web)`.
 - Para o fluxo reproduzível usado por todos os colaboradores, prefira `INSTALAR.bat` e `INICIAR.bat`.
 
 ## Estrutura
@@ -41,6 +43,7 @@ Execute apenas uma instalação local do StowUp por vez. Se outra cópia já est
 ```text
 StowUp/
 ├── mobile/          React Native + Expo SDK 54 (iOS, Android e web público)
+├── staff-desktop/   Central Interna JavaFX (app desktop para funcionários)
 ├── src/             API Spring Boot e aplicação web
 ├── docs/            API, arquitetura, contratos e operação
 ├── tools/           Bootstrap, banco e comandos de execução
