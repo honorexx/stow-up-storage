@@ -27,7 +27,7 @@
     "@types/react": "~19.1.0",
     "@types/react-dom": "~19.1.0",
     "@vitejs/plugin-react": "^4.7.0",
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.4",
     "electron": "^33.4.5",
     "electron-builder": "^25.1.8",
     "prettier": "3.6.2",
